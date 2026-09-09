@@ -23,13 +23,13 @@ namespace ros_cartesian_manager
     constexpr const char *kBehaviourPassthroughMode = "behaviour/passthrough";
     constexpr const char *kJointTargetModePrefix = "behaviour/joint_target/";
 
-    std::chrono::nanoseconds timerPeriod(double update_rate_hz)
+    std::chrono::nanoseconds timerPeriod(double update_rate_hz) //function to convert update rate to timer period
     {
       return std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::duration<double>(1.0 / update_rate_hz));
     }
 
-    bool inputSourcesEqual(const std::vector<InputConfig> &lhs, const std::vector<InputConfig> &rhs)
+    bool inputSourcesEqual(const std::vector<InputConfig> &lhs, const std::vector<InputConfig> &rhs) //function to check if input sources are equal
     {
       if (lhs.size() != rhs.size())
       {
@@ -47,7 +47,7 @@ namespace ros_cartesian_manager
       return true;
     }
 
-    bool inputConfigsEqual(const std::vector<InputConfig> &lhs, const std::vector<InputConfig> &rhs)
+    bool inputConfigsEqual(const std::vector<InputConfig> &lhs, const std::vector<InputConfig> &rhs) //function to check if input configs are equal
     {
       if (!inputSourcesEqual(lhs, rhs))
       {
@@ -66,7 +66,7 @@ namespace ros_cartesian_manager
       return true;
     }
 
-    bool usedTopicsEqual(const TopicConfig &lhs, const TopicConfig &rhs)
+    bool usedTopicsEqual(const TopicConfig &lhs, const TopicConfig &rhs) //function to check if used topics are equal
     {
       return lhs.joystick_command == rhs.joystick_command &&
              lhs.visual_servoing_command == rhs.visual_servoing_command &&
@@ -77,7 +77,7 @@ namespace ros_cartesian_manager
     }
 
     bool jointTargetsEqual(const manager_core::JointTargetBehaviourConfig &lhs,
-                           const manager_core::JointTargetBehaviourConfig &rhs)
+                           const manager_core::JointTargetBehaviourConfig &rhs) //
     {
       if (lhs.joint_names != rhs.joint_names || lhs.targets.size() != rhs.targets.size())
       {
@@ -355,7 +355,7 @@ namespace ros_cartesian_manager
     param_listener_ = std::make_shared<cartesian_manager::ParamListener>(this);
     params_ = param_listener_->get_params();
     config_ = parseManagerConfig(params_);
-    parameter_validator_handle_ =
+    parameter_validator_handle_ = 
         add_on_set_parameters_callback([this](const std::vector<rclcpp::Parameter> &parameters) {
           return validateParameterUpdate(parameters);
         });
@@ -488,93 +488,189 @@ namespace ros_cartesian_manager
   void CartesianManagerROS::setupSubscribers()
   {
     topic_manager_.addSubscriber<std_msgs::msg::String>(
-        "mode_request", config_.topics.mode_request,
-        [this](const std_msgs::msg::String &msg) { modeRequestCallback(msg.data); });
+        "mode_request", config_.topics.mode_request, std::bind(&CartesianManagerROS::modeRequestCallback, this, std::placeholders::_1));
 
-    topic_manager_.addSubscriber<geometry_msgs::msg::PoseStamped>(
-        "ee_pose", config_.topics.ee_pose, [this](const geometry_msgs::msg::PoseStamped &msg) {
-          robot_context_.ee_pose.position =
-              Eigen::Vector3d(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z);
-          robot_context_.ee_pose.orientation =
-              Eigen::Quaterniond(msg.pose.orientation.w, msg.pose.orientation.x,
-                                 msg.pose.orientation.y, msg.pose.orientation.z);
-          robot_context_.ee_pose.frame_id =
-              frameOrDefault(msg.header.frame_id, config_.frames.command_frames.base_frame);
-        });
+    topic_manager_.addSubscriber<geometry_msgs::msg::PoseStamped>(  
+        "ee_pose", config_.topics.ee_pose, std::bind(&CartesianManagerROS::eePoseSubscriberCallback, this, std::placeholders::_1));    
 
-    topic_manager_.addSubscriber<geometry_msgs::msg::TwistStamped>(
-        "ee_vel", config_.topics.ee_vel, [this](const geometry_msgs::msg::TwistStamped &msg) {
-          robot_context_.ee_vel = twistToCommand(msg, config_.frames.default_input_frame_id);
-        });
+    topic_manager_.addSubscriber<geometry_msgs::msg::TwistStamped>( 
+        "ee_vel", config_.topics.ee_vel, std::bind(&CartesianManagerROS::eeVelSubscriberCallback, this, std::placeholders::_1));
 
-    topic_manager_.addSubscriber<std_msgs::msg::Float64MultiArray>(
-        "ee_jac", config_.topics.ee_jac, [this](const std_msgs::msg::Float64MultiArray &msg) {
-          auto jacobian = jacobianFromMsg(msg, get_logger());
-          if (jacobian)
-          {
-            robot_context_.ee_jac = std::move(*jacobian);
-          }
-        });
+    topic_manager_.addSubscriber<std_msgs::msg::Float64MultiArray>( 
+        "ee_jac", config_.topics.ee_jac, std::bind(&CartesianManagerROS::eeJacobianSubscriberCallback, this, std::placeholders::_1));
 
     topic_manager_.addSubscriber<sensor_msgs::msg::JointState>(
-        "joint_states", config_.topics.joint_states,
-        [this](const sensor_msgs::msg::JointState &msg) {
-          robot_context_.joint_names = msg.name;
-          if (msg.position.empty())
-          {
-            robot_context_.joint_positions = Eigen::VectorXd{};
-            return;
-          }
-
-          robot_context_.joint_positions = Eigen::Map<const Eigen::VectorXd>(
-              msg.position.data(), static_cast<Eigen::Index>(msg.position.size()));
-        });
+        "joint_states", config_.topics.joint_states, std::bind(&CartesianManagerROS::jointStatesSubscriberCallback, this, std::placeholders::_1));
 
     if (hasInputSource(config_, manager_core::InputSource::JOYSTICK))
     {
-      topic_manager_.addSubscriber<geometry_msgs::msg::TwistStamped>(
-          "joystick_command", config_.topics.joystick_command,
-          [this](const geometry_msgs::msg::TwistStamped &msg) {
-            const auto now_sec = topic_manager_.nowSec();
-            const auto command = twistToCommand(msg, config_.frames.default_input_frame_id);
-            if (!manager_.setInputCommand(manager_core::InputSource::JOYSTICK, command,
-                                          stampSec(msg.header.stamp, now_sec)))
-            {
-              RCLCPP_WARN_THROTTLE(
-                  get_logger(), *get_clock(), 5000,
-                  "Ignoring joystick command because the source is not configured");
-            }
-          });
+      topic_manager_.addSubscriber<extender_msgs::msg::CartesianVelocityCommand>(
+          "joystick_command", config_.topics.joystick_command, 
+          std::bind(&CartesianManagerROS::joystickcommandCallback, this, std::placeholders::_1));
     }
 
     if (hasInputSource(config_, manager_core::InputSource::VISUAL_SERVOING))
     {
       topic_manager_.addSubscriber<geometry_msgs::msg::TwistStamped>(
-          "visual_servoing_command", config_.topics.visual_servoing_command,
-          [this](const geometry_msgs::msg::TwistStamped &msg) {
-            const auto now_sec = topic_manager_.nowSec();
-            const auto command = twistToCommand(msg, config_.frames.default_input_frame_id);
-            if (!manager_.setInputCommand(manager_core::InputSource::VISUAL_SERVOING, command,
-                                          stampSec(msg.header.stamp, now_sec)))
-            {
-              RCLCPP_WARN_THROTTLE(
-                  get_logger(), *get_clock(), 5000,
-                  "Ignoring visual-servoing command because the source is not configured");
-            }
-          });
+          "visual_servoing_command", config_.topics.visual_servoing_command, std::bind(&CartesianManagerROS::visualServoingSubscriberCallback, this, std::placeholders::_1));
     }
   }
 
-  void CartesianManagerROS::modeRequestCallback(const std::string &mode_request)
+  void CartesianManagerROS::joystickcommandCallback(const extender_msgs::msg::CartesianVelocityCommand &msg)
   {
-    const auto normalized_mode_request = normalizeParameterName(mode_request);
+    const auto now_sec = topic_manager_.nowSec();
+    const auto input_frame_id =
+        frameOrDefault(msg.header.frame_id, config_.frames.default_input_frame_id);
+    if (input_frame_id != config_.frames.default_input_frame_id)
+    {
+      RCLCPP_WARN_THROTTLE(
+          get_logger(), *get_clock(), 5000,
+          "Ignoring joystick command in frame '%s'; expected input frame '%s'",
+          input_frame_id.c_str(), config_.frames.default_input_frame_id.c_str());
+      return;
+    }
+
+    if (!isSupportedOrientationFrame(msg.orientation_frame_id))
+    {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                           "Ignoring joystick command with invalid orientation frame '%s'",
+                           msg.orientation_frame_id.c_str());
+      return;
+    }
+
+    if (requiresEndEffectorPose(msg.orientation_frame_id) && !ee_pose_received_)
+    {
+      RCLCPP_WARN_THROTTLE(
+          get_logger(), *get_clock(), 5000,
+          "Ignoring %s joystick command until a valid end-effector pose is received",
+          msg.orientation_frame_id.c_str());
+      return;
+    }
+
+    const auto joystick_timeout =
+        inputTimeoutSec(config_, manager_core::InputSource::JOYSTICK);
+    if (last_joystick_receipt_sec_ && joystick_timeout &&
+        now_sec - *last_joystick_receipt_sec_ > *joystick_timeout)
+    {
+      hybrid_orientation_frame_.reset();
+    }
+
+    using Command = extender_msgs::msg::CartesianVelocityCommand;
+    if (msg.orientation_frame_id != last_orientation_frame_id_ &&
+        (msg.orientation_frame_id == Command::HYBRID_FRAME ||
+         last_orientation_frame_id_ == Command::HYBRID_FRAME))
+    {
+      hybrid_orientation_frame_.reset();
+    }
+
+    const double hybrid_cone_rad =
+        config_.hybrid_frame_cone_angle_deg * kPi / 180.0;
+    const auto command =
+        twistToCommand(msg, config_.frames.default_input_frame_id,
+                       robot_context_.ee_pose.orientation, hybrid_cone_rad,
+                       hybrid_orientation_frame_);
+    if (!manager_.setInputCommand(manager_core::InputSource::JOYSTICK, command,
+                                  stampSec(msg.header.stamp, now_sec)))
+    {
+      RCLCPP_WARN_THROTTLE(
+          get_logger(), *get_clock(), 5000,
+          "Ignoring joystick command in frame '%s'; expected input frame '%s'",
+          command.frame_id.c_str(), config_.frames.default_input_frame_id.c_str());
+      return;
+    }
+    last_joystick_receipt_sec_ = now_sec;
+    last_orientation_frame_id_ = msg.orientation_frame_id;
+  } 
+
+  void CartesianManagerROS::visualServoingSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg)
+  {
+    const auto now_sec = topic_manager_.nowSec();
+    const auto command = twistToCommand(msg, config_.frames.default_input_frame_id);
+    if (!manager_.setInputCommand(manager_core::InputSource::VISUAL_SERVOING, command,
+                                  stampSec(msg.header.stamp, now_sec)))
+    {
+      RCLCPP_WARN_THROTTLE(
+          get_logger(), *get_clock(), 5000,
+          "Ignoring visual-servoing command in frame '%s'; expected input frame '%s'",
+          command.frame_id.c_str(), config_.frames.default_input_frame_id.c_str());
+    }
+  }
+
+  
+
+  void CartesianManagerROS::jointStatesSubscriberCallback(const sensor_msgs::msg::JointState &msg)
+  {
+    robot_context_.joint_names = msg.name;
+    if (msg.position.empty())
+    {
+      robot_context_.joint_positions = Eigen::VectorXd{};
+      return;
+    }
+
+    robot_context_.joint_positions = Eigen::Map<const Eigen::VectorXd>(
+        msg.position.data(), static_cast<Eigen::Index>(msg.position.size()));
+  }
+
+  void CartesianManagerROS::eePoseSubscriberCallback(const geometry_msgs::msg::PoseStamped &msg)
+  {
+    robot_context_.ee_pose.position =
+        Eigen::Vector3d(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z);
+    robot_context_.ee_pose.orientation =
+        Eigen::Quaterniond(msg.pose.orientation.w, msg.pose.orientation.x,
+                            msg.pose.orientation.y, msg.pose.orientation.z);
+    robot_context_.ee_pose.frame_id =
+        frameOrDefault(msg.header.frame_id, config_.frames.default_input_frame_id);
+    const bool pose_is_valid = isValidQuaternion(robot_context_.ee_pose.orientation) &&
+                                robot_context_.ee_pose.frame_id ==
+                                    config_.frames.default_input_frame_id;
+    if (!pose_is_valid)
+    {
+      if (ee_pose_received_)
+      {
+        hybrid_orientation_frame_.reset();
+      }
+      ee_pose_received_ = false;
+      if (requiresEndEffectorPose(last_orientation_frame_id_))
+      {
+        manager_.clearInputCommand(manager_core::InputSource::JOYSTICK);
+        last_joystick_receipt_sec_.reset();
+        last_orientation_frame_id_.clear();
+      }
+      RCLCPP_WARN_THROTTLE(
+          get_logger(), *get_clock(), 5000,
+          "Ignoring end-effector pose with an invalid orientation or frame '%s'",
+          robot_context_.ee_pose.frame_id.c_str());
+    }
+    else
+    {
+      ee_pose_received_ = true;
+    }
+  }
+
+  void CartesianManagerROS::eeVelSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg)
+  {
+    robot_context_.ee_vel = twistToCommand(msg, config_.frames.default_input_frame_id);
+  }
+  
+  void CartesianManagerROS::eeJacobianSubscriberCallback(const std_msgs::msg::Float64MultiArray &msg)
+  {
+    auto jacobian = jacobianFromMsg(msg, get_logger());
+    if (jacobian)
+    {
+      robot_context_.ee_jac = std::move(*jacobian);
+    }
+  }
+
+  void CartesianManagerROS::modeRequestCallback(const std_msgs::msg::String &mode_request)
+  {
+    const auto normalized_mode_request = normalizeParameterName(mode_request.data);
     const bool joint_target_request =
         normalized_mode_request.rfind(kJointTargetModePrefix, 0) == 0;
     const bool passthrough_request = normalized_mode_request == kBehaviourPassthroughMode;
 
     if (!manager_.setMode(normalized_mode_request))
     {
-      RCLCPP_WARN(get_logger(), "Ignoring invalid mode request '%s'", mode_request.c_str());
+      RCLCPP_WARN(get_logger(), "Ignoring invalid mode request '%s'", mode_request.data.c_str());
       return;
     }
 
