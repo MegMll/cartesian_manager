@@ -552,7 +552,8 @@ namespace ros_cartesian_manager
     if (last_joystick_receipt_sec_ && joystick_timeout &&
         now_sec - *last_joystick_receipt_sec_ > *joystick_timeout)
     {
-      hybrid_orientation_frame_.reset();
+      manager_core::HybridOrientationFrame hybrid_frame;
+      hybrid_frame.reset(robot_context_.hybrid);
     }
 
     using Command = extender_msgs::msg::CartesianVelocityCommand;
@@ -560,7 +561,8 @@ namespace ros_cartesian_manager
         (msg.orientation_frame_id == Command::HYBRID_FRAME ||
          last_orientation_frame_id_ == Command::HYBRID_FRAME))
     {
-      hybrid_orientation_frame_.reset();
+      manager_core::HybridOrientationFrame hybrid_frame;
+      hybrid_frame.reset(robot_context_.hybrid);
     }
 
     const double hybrid_cone_rad =
@@ -568,7 +570,7 @@ namespace ros_cartesian_manager
     const auto command =
         twistToCommand(msg, config_.frames.default_input_frame_id,
                        robot_context_.ee_pose.orientation, hybrid_cone_rad,
-                       hybrid_orientation_frame_);
+                       robot_context_.hybrid);
     if (!manager_.setInputCommand(manager_core::InputSource::JOYSTICK, command,
                                   stampSec(msg.header.stamp, now_sec)))
     {
@@ -627,7 +629,8 @@ namespace ros_cartesian_manager
     {
       if (ee_pose_received_)
       {
-        hybrid_orientation_frame_.reset();
+        manager_core::HybridOrientationFrame hybrid_frame;
+        hybrid_frame.reset(robot_context_.hybrid);
       }
       ee_pose_received_ = false;
       if (requiresEndEffectorPose(last_orientation_frame_id_))

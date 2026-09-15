@@ -57,6 +57,9 @@ namespace ros_cartesian_manager
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr parameter_validator_handle_;
     cartesian_manager::Params params_;
     ManagerConfig config_;
+    bool ee_pose_received_{false};
+    std::optional<double> last_joystick_receipt_sec_;
+    std::string last_orientation_frame_id_;
     void jointStatesSubscriberCallback(const sensor_msgs::msg::JointState &msg);
     void eePoseSubscriberCallback(const geometry_msgs::msg::PoseStamped &msg);
     void eeVelSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg);
