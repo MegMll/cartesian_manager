@@ -532,7 +532,7 @@ namespace ros_cartesian_manager
 
     if (input_frame_id== manager_.input_manager_.frames_names.hybrid_frame)
     {
-      robot_context_.updateHybridPose(0.5);
+      robot_context_.updateHybridPose(0.09);
     }
 
     const auto command = twistToCommand(msg, config_.frames.default_input_frame_id);

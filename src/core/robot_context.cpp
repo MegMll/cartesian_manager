@@ -48,9 +48,12 @@ namespace manager_core
     Eigen::Vector3d x_temp;
 
     double alpha = std::acos(z_0.dot(z_ee));
+    std::cout << "ALPHA :" << alpha << std::endl;
+    std::cout << "CONE ANGLE RAD :" << cone_angle_rad << std::endl;
 
     if (alpha < cone_angle_rad){
-      x = x_0;
+      //x = x_0;
+      x= normalizedProjection(x_0, z_ee);
 
     }
     else{
@@ -59,7 +62,8 @@ namespace manager_core
       
     }
 
-    const Eigen::Vector3d y = z_ee.cross(x);
+    Eigen::Vector3d y = z_ee.cross(x);
+    y = y.normalized();
 
     Eigen::Matrix3d frame;
     frame.col(0) = x;
