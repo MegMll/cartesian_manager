@@ -16,8 +16,6 @@
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
 
-#include <extender_msgs/msg/cartesian_velocity_command.hpp>
-
 
 #include "cartesian_manager/cartesian_manager_parameters.hpp"
 #include "cartesian_manager/core/manager.hpp"
@@ -64,7 +62,7 @@ namespace ros_cartesian_manager
     void eePoseSubscriberCallback(const geometry_msgs::msg::PoseStamped &msg);
     void eeVelSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg);
     void eeJacobianSubscriberCallback(const std_msgs::msg::Float64MultiArray &msg);
-    void joystickcommandCallback(const extender_msgs::msg::CartesianVelocityCommand &msg);
+    void joystickcommandCallback(const geometry_msgs::msg::TwistStamped &msg);
     void visualServoingSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg);
   };
 } // namespace ros_cartesian_manager

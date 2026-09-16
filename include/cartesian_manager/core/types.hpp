@@ -66,26 +66,16 @@ namespace manager_core
     double weight{1.};
   };
 
-  struct HybridState
-  {
-    bool initialized{false};
-    bool has_last_active_input{false};
-    Eigen::Vector3d x_axis{Eigen::Vector3d::UnitX()};
-    Eigen::Vector3d last_active_input{Eigen::Vector3d::Zero()};
-  };
-
   struct RobotContext
   {
     CartesianPose ee_pose;
-    CartesianPose hybrid_pose;
     CartesianVelocity ee_vel;
     Eigen::MatrixXd ee_jac;
     std::vector<std::string> joint_names;
     Eigen::VectorXd joint_positions;
-    HybridState hybrid;
     CartesianPose hybrid_frame_pose;
 
-    void updateHybridPose(const Eigen::Vector3d &angular_input, double cone_angle_rad);
+    void updateHybridPose(/*const Eigen::Vector3d &angular_input,*/ double cone_angle_rad);
     
   };
 } // namespace manager_core

@@ -247,7 +247,7 @@ namespace ros_cartesian_manager
       return frame_id.empty() ? default_frame_id : frame_id;
     }
 
-    manager_core::CartesianVelocity twistToCommand(const geometry_msgs::msg::TwistStamped &msg,
+   manager_core::CartesianVelocity twistToCommand(const geometry_msgs::msg::TwistStamped &msg,
                                                    const std::string &default_frame_id)
     {
       manager_core::CartesianVelocity command;
@@ -504,7 +504,7 @@ namespace ros_cartesian_manager
 
     if (hasInputSource(config_, manager_core::InputSource::JOYSTICK))
     {
-      topic_manager_.addSubscriber<extender_msgs::msg::CartesianVelocityCommand>(
+      topic_manager_.addSubscriber<geometry_msgs::msg::TwistStamped>(
           "joystick_command", config_.topics.joystick_command, 
           std::bind(&CartesianManagerROS::joystickcommandCallback, this, std::placeholders::_1));
     }
@@ -516,56 +516,37 @@ namespace ros_cartesian_manager
     }
   }
 
-  void CartesianManagerROS::joystickcommandCallback(const extender_msgs::msg::CartesianVelocityCommand &msg)
+  void CartesianManagerROS::joystickcommandCallback(const geometry_msgs::msg::TwistStamped &msg)
   {
     const auto now_sec = topic_manager_.nowSec();
     const auto input_frame_id =
         frameOrDefault(msg.header.frame_id, config_.frames.default_input_frame_id);
-    if (input_frame_id != config_.frames.default_input_frame_id)
+    /*if (input_frame_id != config_.frames.default_input_frame_id)
     {
       RCLCPP_WARN_THROTTLE(
           get_logger(), *get_clock(), 5000,
           "Ignoring joystick command in frame '%s'; expected input frame '%s'",
           input_frame_id.c_str(), config_.frames.default_input_frame_id.c_str());
       return;
-    }
+    }*/
 
-    if (!isSupportedOrientationFrame(msg.orientation_frame_id))
+    if (input_frame_id== manager_.input_manager_.frames_names.hybrid_frame)
     {
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
-                           "Ignoring joystick command with invalid orientation frame '%s'",
-                           msg.orientation_frame_id.c_str());
-      return;
+      robot_context_.updateHybridPose(0.5);
     }
 
-    if (requiresEndEffectorPose(msg.orientation_frame_id) && !ee_pose_received_)
-    {
-      RCLCPP_WARN_THROTTLE(
-          get_logger(), *get_clock(), 5000,
-          "Ignoring %s joystick command until a valid end-effector pose is received",
-          msg.orientation_frame_id.c_str());
-      return;
-    }
+    const auto command = twistToCommand(msg, config_.frames.default_input_frame_id);
 
-    const auto joystick_timeout =
-        inputTimeoutSec(config_, manager_core::InputSource::JOYSTICK);
-    if (last_joystick_receipt_sec_ && joystick_timeout &&
-        now_sec - *last_joystick_receipt_sec_ > *joystick_timeout)
-    {
-      manager_core::HybridOrientationFrame hybrid_frame;
-      hybrid_frame.reset(robot_context_.hybrid);
-    }
+    if (!manager_.setInputCommand(manager_core::InputSource::JOYSTICK, command,
+                                          stampSec(msg.header.stamp, now_sec)))
+            {
+              RCLCPP_WARN_THROTTLE(
+                  get_logger(), *get_clock(), 5000,
+                  "Ignoring joystick command because the source is not configured");
+            }
+    
 
-    using Command = extender_msgs::msg::CartesianVelocityCommand;
-    if (msg.orientation_frame_id != last_orientation_frame_id_ &&
-        (msg.orientation_frame_id == Command::HYBRID_FRAME ||
-         last_orientation_frame_id_ == Command::HYBRID_FRAME))
-    {
-      manager_core::HybridOrientationFrame hybrid_frame;
-      hybrid_frame.reset(robot_context_.hybrid);
-    }
-
-    const double hybrid_cone_rad =
+    /*const double hybrid_cone_rad =
         config_.hybrid_frame_cone_angle_deg * kPi / 180.0;
     const auto command =
         twistToCommand(msg, config_.frames.default_input_frame_id,
@@ -582,6 +563,12 @@ namespace ros_cartesian_manager
     }
     last_joystick_receipt_sec_ = now_sec;
     last_orientation_frame_id_ = msg.orientation_frame_id;
+
+    if (input_frame_id== manager_.input_manager_.frames_names.hybrid_frame)
+    {
+      robot_context_.updateHybridPose(hybrid_cone_rad);
+    }*/
+
   } 
 
   void CartesianManagerROS::visualServoingSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg)
@@ -622,13 +609,13 @@ namespace ros_cartesian_manager
                             msg.pose.orientation.y, msg.pose.orientation.z);
     robot_context_.ee_pose.frame_id =
         frameOrDefault(msg.header.frame_id, config_.frames.default_input_frame_id);
-    const bool pose_is_valid = isValidQuaternion(robot_context_.ee_pose.orientation) &&
+    /*const bool pose_is_valid = isValidQuaternion(robot_context_.ee_pose.orientation) &&
                                 robot_context_.ee_pose.frame_id ==
                                     config_.frames.default_input_frame_id;
     if (!pose_is_valid)
     {
       if (ee_pose_received_)
-      {
+      {isSupportedOrientationFrame
         manager_core::HybridOrientationFrame hybrid_frame;
         hybrid_frame.reset(robot_context_.hybrid);
       }
@@ -647,7 +634,7 @@ namespace ros_cartesian_manager
     else
     {
       ee_pose_received_ = true;
-    }
+    }*/
   }
 
   void CartesianManagerROS::eeVelSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg)

@@ -29,6 +29,7 @@ namespace manager_core
   class Manager
   {
   public:
+    InputManager input_manager_;
     void configure(const ManagerConfig &config);
     void addInputChannel(InputSource source, double timeout_sec, bool enabled = true);
     void clearInputChannels();
@@ -45,6 +46,7 @@ namespace manager_core
     std::optional<CartesianVelocity> update(double now_sec, double dt_sec,
                                             const RobotContext &context);
 
+
   private:
     void applyGeometric(CartesianVelocity &command, const RobotContext &context, double dt_sec);
     void applyBehaviour(CartesianVelocity &command, const RobotContext &context, double dt_sec);
@@ -53,7 +55,6 @@ namespace manager_core
     void registerBehaviour(Behaviours state, std::unique_ptr<Shaper> shaper);
     const JointTarget *jointTargetByName(const std::string &target_name) const;
 
-    InputManager input_manager_;
     Geometrics geometric_state_{Geometrics::BOTH};
     Behaviours behaviour_state_{Behaviours::PASSTHROUGH};
     JointTargetBehaviourConfig joint_target_config_;

@@ -161,7 +161,7 @@ namespace manager_core
     }
     else if (command.frame_id == frames_names.hybrid_frame)
     {
-      pose = &context.hybrid_pose;
+      pose = &context.hybrid_frame_pose;
     }
     else
     {

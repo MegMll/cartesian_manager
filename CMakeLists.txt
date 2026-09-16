@@ -31,6 +31,7 @@ add_library(${PROJECT_NAME}_core
   src/core/shapers/geometric/jaco.cpp
   src/core/shapers/geometric/snake.cpp
   src/core/ratelimiter.cpp
+  src/core/robot_context.cpp
 )
 target_compile_features(${PROJECT_NAME}_core PUBLIC cxx_std_17)
 target_include_directories(${PROJECT_NAME}_core PUBLIC

@@ -12,6 +12,8 @@ namespace manager_core
   {
 
   public:
+
+    FramesConfig frames_names;
     void setFramesConfig(const std::string &ee_frame, const std::string &base_frame,
                          const std::string &hybrid_frame);
     void setFramesConfig(const FramesConfig &frame_names);
@@ -41,6 +43,5 @@ namespace manager_core
                                                         const RobotContext &context) const;
 
     std::unordered_map<InputSource, InputChannel> inputs_;
-    FramesConfig frames_names;
   };
 } // namespace manager_core
