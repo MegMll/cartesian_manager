@@ -69,8 +69,8 @@ namespace manager_core
   struct HybridState
   {
     Eigen::Vector3d previous_hybrid_x_ = Eigen::Vector3d::UnitX();
-    double enter_cone_ang = 0.09;
-    double exit_cone_ang = 0.11;
+    Eigen::Vector3d previous_angular_input_ = Eigen::Vector3d::Zero();
+    double min_cone_ang = 0.09;
     bool inside_cone = false;
   };
 
@@ -87,6 +87,6 @@ namespace manager_core
     HybridState hybrid_state;
     CartesianPose hybrid_frame_pose;
 
-    void updateHybridPose();
+    void updateHybridPose(const Eigen::Vector3d &angular_input);
   };
 } // namespace manager_core

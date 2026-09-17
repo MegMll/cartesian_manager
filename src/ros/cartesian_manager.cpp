@@ -525,12 +525,11 @@ namespace ros_cartesian_manager
     const auto input_frame_id =
         frameOrDefault(msg.header.frame_id, config_.frames.default_input_frame_id);
     const manager_core::FramesConfig temp_frames = manager_.getInputManager().getFramesNames();
+    const auto command = twistToCommand(msg, config_.frames.default_input_frame_id);
     if (input_frame_id == temp_frames.hybrid_frame)
     {
-      robot_context_.updateHybridPose();
+      robot_context_.updateHybridPose(command.angular);
     }
-
-    const auto command = twistToCommand(msg, config_.frames.default_input_frame_id);
 
     if (!manager_.setInputCommand(manager_core::InputSource::JOYSTICK, command,
                                   stampSec(msg.header.stamp, now_sec)))
