@@ -8,11 +8,11 @@
 
 #include "cartesian_manager/core/input_manager.hpp"
 
+#include "cartesian_manager/core/ratelimiter.hpp"
 #include "cartesian_manager/core/shapers/behaviour/joint_target.hpp"
 #include "cartesian_manager/core/shapers/geometric/jaco.hpp"
 #include "cartesian_manager/core/shapers/geometric/snake.hpp"
 #include "cartesian_manager/core/shapers/shaper.hpp"
-#include "cartesian_manager/core/ratelimiter.hpp"
 #include "cartesian_manager/core/types.hpp"
 
 namespace manager_core
@@ -29,7 +29,6 @@ namespace manager_core
   class Manager
   {
   public:
-    InputManager input_manager_;
     void configure(const ManagerConfig &config);
     void addInputChannel(InputSource source, double timeout_sec, bool enabled = true);
     void clearInputChannels();
@@ -46,6 +45,10 @@ namespace manager_core
     std::optional<CartesianVelocity> update(double now_sec, double dt_sec,
                                             const RobotContext &context);
 
+    InputManager getInputManager() const
+    {
+      return input_manager_;
+    };
 
   private:
     void applyGeometric(CartesianVelocity &command, const RobotContext &context, double dt_sec);
@@ -60,6 +63,8 @@ namespace manager_core
     JointTargetBehaviourConfig joint_target_config_;
     RateLimiterConfig rate_limiter_config_;
     RateLimiter rate_limiter_;
+
+    InputManager input_manager_;
 
     std::unordered_map<Geometrics, std::unique_ptr<Shaper>> geometric_shapers_;
     std::unordered_map<Behaviours, std::unique_ptr<Shaper>> behaviours_;
