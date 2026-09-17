@@ -69,7 +69,9 @@ namespace manager_core
   struct HybridState
   {
     Eigen::Vector3d previous_hybrid_x_ = Eigen::Vector3d::UnitX();
-    double min_cone_ang = 0.09;
+    double enter_cone_ang = 0.09;
+    double exit_cone_ang = 0.11;
+    bool inside_cone = false;
   };
 
   struct RobotContext

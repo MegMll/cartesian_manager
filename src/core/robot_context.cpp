@@ -36,18 +36,32 @@ namespace manager_core
     const Eigen::Vector3d x_0 = Eigen::Vector3d::UnitX();
 
     const double vertical_alignment = std::clamp(z_0.dot(z_ee), -1.0, 1.0);
-    const bool inside_cone = std::abs(vertical_alignment) > std::cos(hybrid_state.min_cone_ang);
-
+    
     Eigen::Vector3d x;
     Eigen::Vector3d reference_x = normalizedProjection(x_0, z_ee);
 
-    if (inside_cone)
+    if (!hybrid_state.inside_cone)
+    {
+      if (std::abs(vertical_alignment) > std::cos(hybrid_state.enter_cone_ang))
+      {
+        hybrid_state.inside_cone = true;
+      }
+    }
+    else
+    {
+      if (std::abs(vertical_alignment) < std::cos(hybrid_state.exit_cone_ang))
+      {
+        hybrid_state.inside_cone = false;
+      }
+    }
+
+    if (hybrid_state.inside_cone)
       x = reference_x;
     else
     {
       x = z_0.cross(z_ee).normalized();
     }
-    x.normalize();
+
     if (x.dot(hybrid_state.previous_hybrid_x_) < 0.0)
     {
       x = -x;
