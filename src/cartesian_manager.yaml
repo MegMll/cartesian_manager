@@ -128,3 +128,51 @@ cartesian_manager:
         type: double_array
         default_value: [0.0]
         description: "Flattened target joint positions, in target_names order. Each target has joint_names.size() positions."
+
+    pose_targets:
+      target_names:
+        type: string_array
+        default_value: [""]
+        description: "Names for Cartesian pose targets."
+      frame_ids:
+        type: string_array
+        default_value: [""]
+        description: "Reference frame for each pose target, in target_names order."
+      positions:
+        type: double_array
+        default_value: [0.0, 0.0, 0.0]
+        description: "Flattened XYZ positions, three values per pose target."
+      orientations:
+        type: double_array
+        default_value: [0.0, 0.0, 0.0, 1.0]
+        description: "Flattened XYZW quaternions, four values per pose target."
+      linear_kp:
+        type: double
+        default_value: 1.0
+      linear_ki:
+        type: double
+        default_value: 0.0
+      linear_kd:
+        type: double
+        default_value: 0.0
+      angular_kp:
+        type: double
+        default_value: 1.0
+      angular_ki:
+        type: double
+        default_value: 0.0
+      angular_kd:
+        type: double
+        default_value: 0.0
+      max_linear_velocity:
+        type: double
+        default_value: 0.1
+      max_angular_velocity:
+        type: double
+        default_value: 0.2
+      position_tolerance:
+        type: double
+        default_value: 0.01
+      orientation_tolerance:
+        type: double
+        default_value: 0.05

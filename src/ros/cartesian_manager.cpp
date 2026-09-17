@@ -96,6 +96,33 @@ namespace ros_cartesian_manager
       return true;
     }
 
+    bool poseTargetsEqual(const manager_core::PoseTargetConfig &lhs,
+                          const manager_core::PoseTargetConfig &rhs)
+    {
+      if (lhs.target_names != rhs.target_names || lhs.targets.size() != rhs.targets.size() ||
+          lhs.linear_kp != rhs.linear_kp || lhs.linear_ki != rhs.linear_ki ||
+          lhs.linear_kd != rhs.linear_kd || lhs.angular_kp != rhs.angular_kp ||
+          lhs.angular_ki != rhs.angular_ki || lhs.angular_kd != rhs.angular_kd ||
+          lhs.max_linear_velocity != rhs.max_linear_velocity ||
+          lhs.max_angular_velocity != rhs.max_angular_velocity ||
+          lhs.position_tolerance != rhs.position_tolerance ||
+          lhs.orientation_tolerance != rhs.orientation_tolerance)
+      {
+        return false;
+      }
+      for (std::size_t index = 0; index < lhs.targets.size(); ++index)
+      {
+        const auto &a = lhs.targets[index];
+        const auto &b = rhs.targets[index];
+        if (a.frame_id != b.frame_id || a.position != b.position ||
+            a.orientation.coeffs() != b.orientation.coeffs())
+        {
+          return false;
+        }
+      }
+      return true;
+    }
+
     bool framesEqual(const manager_core::FramesConfig &lhs, const manager_core::FramesConfig &rhs)
     {
       return lhs.base_frame == rhs.base_frame && lhs.ee_frame == rhs.ee_frame &&
@@ -109,8 +136,11 @@ namespace ros_cartesian_manager
              lhs.jaco.max_angular_velocity == rhs.jaco.max_angular_velocity &&
              lhs.snake.gain == rhs.snake.gain &&
              jointTargetsEqual(lhs.joint_targets, rhs.joint_targets) &&
-             lhs.rate_limiter.max_linear_acceleration == rhs.rate_limiter.max_linear_acceleration &&
-             lhs.rate_limiter.max_angular_acceleration == rhs.rate_limiter.max_angular_acceleration;
+             poseTargetsEqual(lhs.pose_targets, rhs.pose_targets) &&
+             lhs.rate_limiter.max_linear_acceleration ==
+                 rhs.rate_limiter.max_linear_acceleration &&
+             lhs.rate_limiter.max_angular_acceleration ==
+                 rhs.rate_limiter.max_angular_acceleration;
     }
 
     cartesian_manager::Params updatedParamsForRequest(
@@ -210,6 +240,62 @@ namespace ros_cartesian_manager
         else if (name == "shapers.snake.gain")
         {
           params.shapers.snake.gain = param.as_double();
+        }
+        else if (name == "behaviours.pose_targets.target_names")
+        {
+          params.behaviours.pose_targets.target_names = param.as_string_array();
+        }
+        else if (name == "behaviours.pose_targets.frame_ids")
+        {
+          params.behaviours.pose_targets.frame_ids = param.as_string_array();
+        }
+        else if (name == "behaviours.pose_targets.positions")
+        {
+          params.behaviours.pose_targets.positions = param.as_double_array();
+        }
+        else if (name == "behaviours.pose_targets.orientations")
+        {
+          params.behaviours.pose_targets.orientations = param.as_double_array();
+        }
+        else if (name == "behaviours.pose_targets.linear_kp")
+        {
+          params.behaviours.pose_targets.linear_kp = param.as_double();
+        }
+        else if (name == "behaviours.pose_targets.linear_ki")
+        {
+          params.behaviours.pose_targets.linear_ki = param.as_double();
+        }
+        else if (name == "behaviours.pose_targets.linear_kd")
+        {
+          params.behaviours.pose_targets.linear_kd = param.as_double();
+        }
+        else if (name == "behaviours.pose_targets.angular_kp")
+        {
+          params.behaviours.pose_targets.angular_kp = param.as_double();
+        }
+        else if (name == "behaviours.pose_targets.angular_ki")
+        {
+          params.behaviours.pose_targets.angular_ki = param.as_double();
+        }
+        else if (name == "behaviours.pose_targets.angular_kd")
+        {
+          params.behaviours.pose_targets.angular_kd = param.as_double();
+        }
+        else if (name == "behaviours.pose_targets.max_linear_velocity")
+        {
+          params.behaviours.pose_targets.max_linear_velocity = param.as_double();
+        }
+        else if (name == "behaviours.pose_targets.max_angular_velocity")
+        {
+          params.behaviours.pose_targets.max_angular_velocity = param.as_double();
+        }
+        else if (name == "behaviours.pose_targets.position_tolerance")
+        {
+          params.behaviours.pose_targets.position_tolerance = param.as_double();
+        }
+        else if (name == "behaviours.pose_targets.orientation_tolerance")
+        {
+          params.behaviours.pose_targets.orientation_tolerance = param.as_double();
         }
         else if (name == "behaviours.joint_targets.joint_names")
         {
@@ -598,6 +684,8 @@ namespace ros_cartesian_manager
     const auto normalized_mode_request = normalizeParameterName(mode_request.data);
     const bool joint_target_request = normalized_mode_request.rfind(kJointTargetModePrefix, 0) == 0;
     const bool passthrough_request = normalized_mode_request == kBehaviourPassthroughMode;
+    const bool pose_target_request =
+        normalized_mode_request.rfind("behaviour/pose_target/", 0) == 0;
 
     if (!manager_.setMode(normalized_mode_request))
     {
@@ -612,7 +700,7 @@ namespace ros_cartesian_manager
       return;
     }
 
-    if (passthrough_request)
+    if (passthrough_request || pose_target_request)
     {
       publishJointTargetCommand(std::nullopt);
     }

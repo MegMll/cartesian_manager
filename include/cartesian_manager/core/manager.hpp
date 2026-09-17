@@ -10,6 +10,7 @@
 
 #include "cartesian_manager/core/ratelimiter.hpp"
 #include "cartesian_manager/core/shapers/behaviour/joint_target.hpp"
+#include "cartesian_manager/core/shapers/behaviour/pose_target.hpp"
 #include "cartesian_manager/core/shapers/geometric/jaco.hpp"
 #include "cartesian_manager/core/shapers/geometric/snake.hpp"
 #include "cartesian_manager/core/shapers/shaper.hpp"
@@ -23,6 +24,7 @@ namespace manager_core
     SnakeShaperConfig snake;
     FramesConfig frames;
     JointTargetBehaviourConfig joint_targets;
+    PoseTargetConfig pose_targets;
     RateLimiterConfig rate_limiter;
   };
 

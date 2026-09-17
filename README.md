@@ -307,6 +307,37 @@ Frame names are configured under `frames`:
 
 `cartesian_manager` does not use TF lookup. `ee_pose` must be stamped in `frames.base_frame`; the manager derives the hybrid pose from it.
 
+## Pose Targets
+
+Configure named Cartesian poses under `behaviours.pose_targets`. The arrays follow
+`target_names` order. Each target has one `frame_ids` entry, three XYZ
+`positions` values, and four XYZW `orientations` values:
+
+```yaml
+cartesian_manager:
+  ros__parameters:
+    behaviours:
+      pose_targets:
+        target_names: [ready]
+        frame_ids: [base_link]
+        positions: [0.4, 0.0, 0.3]
+        orientations: [0.0, 0.0, 0.0, 1.0]
+        linear_kp: 1.0
+        angular_kp: 1.0
+        max_linear_velocity: 0.1
+        max_angular_velocity: 0.2
+        position_tolerance: 0.01
+        orientation_tolerance: 0.05
+```
+
+Send `behaviour/pose_target/ready` on `/mode_request` to start following the
+pose. The manager publishes Cartesian velocity toward the target without
+requiring a joystick command. The target frame must match the incoming
+`ee_pose` frame; use `frames.base_frame` for the usual setup. Velocity
+becomes zero when both position and orientation are within tolerance. Send
+`behaviour/passthrough` to return to input control. Optional `linear_ki`,
+`linear_kd`, `angular_ki`, and `angular_kd` parameters default to zero.
+
 ## Joint Targets
 
 Named joint targets are configured under:

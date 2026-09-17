@@ -173,6 +173,80 @@ namespace ros_cartesian_manager
       return targets;
     }
 
+    manager_core::PoseTargetConfig makePoseTargetConfig(
+        const cartesian_manager::Params &params)
+    {
+      const auto &source = params.behaviours.pose_targets;
+      manager_core::PoseTargetConfig config;
+      config.target_names = normalizedNonEmptyNames(source.target_names);
+      if (config.target_names.size() != source.target_names.size() &&
+          !(source.target_names.size() == 1 && source.target_names.front().empty()))
+      {
+        throw std::invalid_argument("behaviours.pose_targets.target_names contains an empty name");
+      }
+      requireUniqueNames(config.target_names, "behaviours.pose_targets.target_names");
+
+      config.linear_kp = source.linear_kp;
+      config.linear_ki = source.linear_ki;
+      config.linear_kd = source.linear_kd;
+      config.angular_kp = source.angular_kp;
+      config.angular_ki = source.angular_ki;
+      config.angular_kd = source.angular_kd;
+      config.max_linear_velocity = source.max_linear_velocity;
+      config.max_angular_velocity = source.max_angular_velocity;
+      config.position_tolerance = source.position_tolerance;
+      config.orientation_tolerance = source.orientation_tolerance;
+      requireNonNegative(config.linear_kp, "behaviours.pose_targets.linear_kp");
+      requireNonNegative(config.linear_ki, "behaviours.pose_targets.linear_ki");
+      requireNonNegative(config.linear_kd, "behaviours.pose_targets.linear_kd");
+      requireNonNegative(config.angular_kp, "behaviours.pose_targets.angular_kp");
+      requireNonNegative(config.angular_ki, "behaviours.pose_targets.angular_ki");
+      requireNonNegative(config.angular_kd, "behaviours.pose_targets.angular_kd");
+      requirePositive(config.max_linear_velocity, "behaviours.pose_targets.max_linear_velocity");
+      requirePositive(config.max_angular_velocity, "behaviours.pose_targets.max_angular_velocity");
+      requireNonNegative(config.position_tolerance, "behaviours.pose_targets.position_tolerance");
+      requireNonNegative(config.orientation_tolerance, "behaviours.pose_targets.orientation_tolerance");
+
+      const auto count = config.target_names.size();
+      if (count == 0)
+      {
+        return config;
+      }
+      if (source.frame_ids.size() != count || source.positions.size() != count * 3 ||
+          source.orientations.size() != count * 4)
+      {
+        throw std::invalid_argument("behaviours.pose_targets arrays must contain one frame, "
+                                    "three position values, and four orientation values per target");
+      }
+
+      config.targets.reserve(count);
+      for (std::size_t index = 0; index < count; ++index)
+      {
+        manager_core::CartesianPose pose;
+        pose.frame_id = source.frame_ids[index];
+        requireKnownCommandFrame(
+            manager_core::FramesConfig{params.frames.ee_frame, params.frames.base_frame,
+                                       params.frames.hybrid_frame},
+            pose.frame_id, "behaviours.pose_targets.frame_ids");
+        pose.position = Eigen::Vector3d(source.positions[index * 3],
+                                        source.positions[index * 3 + 1],
+                                        source.positions[index * 3 + 2]);
+        pose.orientation = Eigen::Quaterniond(source.orientations[index * 4 + 3],
+                                              source.orientations[index * 4],
+                                              source.orientations[index * 4 + 1],
+                                              source.orientations[index * 4 + 2]);
+        if (!pose.position.allFinite() || !pose.orientation.coeffs().allFinite() ||
+            !std::isfinite(pose.orientation.norm()) || pose.orientation.norm() <= 1.0e-9)
+        {
+          throw std::invalid_argument("behaviours.pose_targets contains a non-finite pose "
+                                      "or zero quaternion");
+        }
+        pose.orientation.normalize();
+        config.targets.push_back(std::move(pose));
+      }
+      return config;
+    }
+
     manager_core::JointTargetBehaviourConfig makeJointTargetConfig(
         const cartesian_manager::Params &params)
     {
@@ -265,6 +339,7 @@ namespace ros_cartesian_manager
     config.manager.jaco.max_angular_velocity = params.shapers.jaco.max_angular_velocity;
     config.manager.snake.gain = params.shapers.snake.gain;
     config.manager.joint_targets = makeJointTargetConfig(params);
+    config.manager.pose_targets = makePoseTargetConfig(params);
     config.manager.rate_limiter.max_linear_acceleration =
         params.rate_limiter.max_linear_acceleration;
     config.manager.rate_limiter.max_angular_acceleration =

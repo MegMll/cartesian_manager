@@ -37,8 +37,14 @@ namespace manager_core
     registerGeometricShaper(Geometrics::JACO, std::make_unique<JacoShaper>(config.jaco));
     registerGeometricShaper(Geometrics::SNAKE, std::make_unique<SnakeShaper>(config.snake));
     joint_target_config_ = config.joint_targets;
+    registerBehaviour(Behaviours::POSE_TARGET, std::make_unique<PoseTarget>(config.pose_targets));
     rate_limiter_config_ = config.rate_limiter;
     rate_limiter_.reset();
+
+    if (behaviour_state_ == Behaviours::POSE_TARGET)
+    {
+      behaviour_state_ = Behaviours::PASSTHROUGH;
+    }
 
     if (behaviour_state_ == Behaviours::JOINT_TARGET && !jointTargetByName(joint_target_name_))
     {
@@ -124,7 +130,31 @@ namespace manager_core
           return false;
         }
 
+        if (behaviour_state_ == Behaviours::POSE_TARGET)
+        {
+          behaviours_.at(Behaviours::POSE_TARGET)->reset();
+        }
         behaviour_state_ = Behaviours::PASSTHROUGH;
+        rate_limiter_.reset();
+        return true;
+      }
+
+      if (parts[1] == "pose_target")
+      {
+        if (parts.size() != 3)
+        {
+          return false;
+        }
+
+        const auto pose_target = behaviours_.find(Behaviours::POSE_TARGET);
+        if (pose_target == behaviours_.end() ||
+            !pose_target->second->start(parts[2], RobotContext{}))
+        {
+          return false;
+        }
+
+        behaviour_state_ = Behaviours::POSE_TARGET;
+        rate_limiter_.reset();
         return true;
       }
 
@@ -231,7 +261,19 @@ namespace manager_core
       return CartesianVelocity{};
     }
 
-    auto command = input_manager_.getFullCommand(now_sec, context);
+    if (behaviour_state_ == Behaviours::POSE_TARGET)
+    {
+      const auto &pose_target = behaviours_.at(Behaviours::POSE_TARGET);
+      if (pose_target->validate(context) || pose_target->isComplete(context))
+      {
+        rate_limiter_.reset();
+        return CartesianVelocity{};
+      }
+    }
+
+    auto command = behaviour_state_ == Behaviours::POSE_TARGET
+                       ? std::optional<CartesianCommand>(CartesianCommand{})
+                       : input_manager_.getFullCommand(now_sec, context);
     if (command)
     {
       applyGeometric(*command, context, dt_sec);

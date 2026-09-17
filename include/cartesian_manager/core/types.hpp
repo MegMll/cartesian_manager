@@ -25,7 +25,8 @@ namespace manager_core
   enum class Behaviours
   {
     PASSTHROUGH,
-    JOINT_TARGET
+    JOINT_TARGET,
+    POSE_TARGET
   };
 
   struct FramesConfig
