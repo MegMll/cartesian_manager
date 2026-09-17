@@ -38,7 +38,7 @@ namespace manager_core
     const double vertical_alignment = std::clamp(z_0.dot(z_ee), -1.0, 1.0);
     hybrid_state.inside_cone = std::abs(vertical_alignment) > std::cos(hybrid_state.min_cone_ang);
 
-    const bool active = angular_input.norm() > kVectorEpsilon;
+    const bool active = angular_input.norm() > hybrid_state.released_input;
     const bool reversed = active && angular_input.dot(hybrid_state.previous_angular_input_) < 0.0;
     const bool reanchor = !active || reversed;
     Eigen::Vector3d x;
@@ -56,8 +56,18 @@ namespace manager_core
         x = -x;
       }
     }
+
     hybrid_state.previous_hybrid_x_ = x;
-    hybrid_state.previous_angular_input_ = angular_input;
+    if (active)
+    {
+      hybrid_state.previous_angular_input_ = angular_input;
+      hybrid_state.has_previous_active_input = true;
+    }
+    else
+    {
+      hybrid_state.previous_angular_input_.setZero();
+      hybrid_state.has_previous_active_input = false;
+    }
 
     Eigen::Vector3d y = z_ee.cross(x).normalized();
 

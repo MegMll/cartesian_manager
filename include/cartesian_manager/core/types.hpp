@@ -72,6 +72,8 @@ namespace manager_core
     Eigen::Vector3d previous_angular_input_ = Eigen::Vector3d::Zero();
     double min_cone_ang = 0.09;
     bool inside_cone = false;
+    bool has_previous_active_input = false;
+    double released_input = 0.01;
   };
 
   struct RobotContext
