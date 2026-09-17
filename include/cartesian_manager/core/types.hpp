@@ -78,15 +78,28 @@ namespace manager_core
   {
     CartesianPose ee_pose;
     CartesianVelocity ee_vel;
-    
+
     Eigen::MatrixXd ee_jac;
-    
+
     std::vector<std::string> joint_names;
     Eigen::VectorXd joint_positions;
-    
+
     HybridState hybrid_state;
     CartesianPose hybrid_frame_pose;
 
+    /**
+     * @brief Updates the hybrid orientation frame used for angular input mapping.
+     *
+     * This implementation is based on the adaptive tool-frame strategy described in:
+     * "Intuitive Adaptive Orientation Control for Enhanced Human-Robot Interaction"
+     * by Campeau-Lecours et al.
+     *
+     * The frame follows the tool Z axis while adapting its X/Y axes near vertical
+     * singular configurations to preserve intuitive and continuous orientation control.
+     *
+     * @param angular_input Angular command used to detect release/reversal and update
+     *                      the hybrid-frame behavior.
+     */
     void updateHybridPose(const Eigen::Vector3d &angular_input);
   };
 } // namespace manager_core
