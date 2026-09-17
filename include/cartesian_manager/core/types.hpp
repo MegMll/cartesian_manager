@@ -66,16 +66,25 @@ namespace manager_core
     double weight{1.};
   };
 
+  struct HybridState
+  {
+    Eigen::Vector3d previous_hybrid_x_ = Eigen::Vector3d::UnitX();
+    double min_cone_ang = 0.09;
+  };
+
   struct RobotContext
   {
     CartesianPose ee_pose;
     CartesianVelocity ee_vel;
+    
     Eigen::MatrixXd ee_jac;
+    
     std::vector<std::string> joint_names;
     Eigen::VectorXd joint_positions;
+    
+    HybridState hybrid_state;
     CartesianPose hybrid_frame_pose;
 
-    void updateHybridPose(/*const Eigen::Vector3d &angular_input,*/ double cone_angle_rad);
-    
+    void updateHybridPose();
   };
 } // namespace manager_core
