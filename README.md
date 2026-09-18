@@ -242,7 +242,7 @@ The main groups are:
 - `rate_limiter`
 - `behaviours`
 
-The node validates runtime parameter updates. Invalid updates are rejected by the ROS parameter callback before they are applied internally.
+Topic names, frames, the update rate, input source declarations, and target arrays are startup-only parameters. Change them in the launch configuration and restart the node. Input enable flags, timeouts, shaper gains and limits, rate limits, and pose-target gains and tolerances can change at runtime. The node validates those updates before applying them.
 
 ## Output Processing
 
@@ -334,9 +334,11 @@ Send `behaviour/pose_target/ready` on `/mode_request` to start following the
 pose. The manager publishes Cartesian velocity toward the target without
 requiring a joystick command. The target frame must match the incoming
 `ee_pose` frame; use `frames.base_frame` for the usual setup. Velocity
-becomes zero when both position and orientation are within tolerance. Send
-`behaviour/passthrough` to return to input control. Optional `linear_ki`,
-`linear_kd`, `angular_ki`, and `angular_kd` parameters default to zero.
+becomes zero when both position and orientation are within tolerance, then
+the manager returns to input control on the next update. Send
+`behaviour/passthrough` to return to input control earlier. The controller uses
+proportional gains only: `linear_kp` for position error and `angular_kp` for
+orientation error. Each command is capped by its configured maximum velocity.
 
 ## Joint Targets
 
@@ -347,22 +349,9 @@ cartesian_manager:
   ros__parameters:
     behaviours:
       joint_targets:
-        joint_names:
-          - joint_1
-          - joint_2
-          - joint_3
-          - joint_4
-          - joint_5
-          - joint_6
-        target_names:
-          - home
-        positions:
-          - 2.5
-          - 0.3
-          - -2.4
-          - 2.97
-          - 1.2
-          - -0.5
+        joint_names: [joint_1, joint_2, joint_3, joint_4, joint_5, joint_6]
+        target_names: [home]
+        positions: [2.5, 0.3, -2.4, 2.97, 1.2, -0.5]
 ```
 
 `positions` is flattened in `target_names` order. If there are 6 joints and 2 targets, the array must contain 12 values.
