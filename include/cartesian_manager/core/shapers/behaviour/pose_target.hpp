@@ -13,14 +13,10 @@ namespace manager_core
   struct PoseTargetConfig
   {
     double linear_kp{1.0};
-    double linear_ki{0.0};
-    double linear_kd{0.0};
     double angular_kp{1.0};
-    double angular_ki{0.0};
-    double angular_kd{0.0};
     double max_linear_velocity{0.1};
     double max_angular_velocity{0.2};
-    double position_tolerance{0.01};
+    double position_tolerance{0.05};
     double orientation_tolerance{0.05};
 
     std::vector<std::string> target_names;
@@ -59,12 +55,6 @@ namespace manager_core
     std::unordered_map<std::string, CartesianPose> pose_targets_;
     std::string active_target_name_;
     bool active_{false};
-
-    Eigen::Vector3d linear_integral_{Eigen::Vector3d::Zero()};
-    Eigen::Vector3d angular_integral_{Eigen::Vector3d::Zero()};
-    Eigen::Vector3d previous_linear_error_{Eigen::Vector3d::Zero()};
-    Eigen::Vector3d previous_angular_error_{Eigen::Vector3d::Zero()};
-    bool has_previous_error_{false};
   };
 
 } // namespace manager_core

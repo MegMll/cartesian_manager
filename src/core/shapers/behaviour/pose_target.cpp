@@ -57,7 +57,7 @@ namespace manager_core
   }
 
   CartesianCommand PoseTarget::update(const CartesianCommand &, const RobotContext &context,
-                                      double dt_sec)
+                                      double)
   {
     CartesianVelocity command;
     const auto target = activeTarget();
@@ -73,46 +73,11 @@ namespace manager_core
     if (linear_error.norm() <= config_.position_tolerance &&
         angular_error.norm() <= config_.orientation_tolerance)
     {
-      linear_integral_.setZero();
-      angular_integral_.setZero();
-      has_previous_error_ = false;
       return command;
     }
 
-    Eigen::Vector3d linear_derivative = Eigen::Vector3d::Zero();
-    Eigen::Vector3d angular_derivative = Eigen::Vector3d::Zero();
-    if (std::isfinite(dt_sec) && dt_sec > 0.0)
-    {
-      if (has_previous_error_)
-      {
-        linear_derivative = (linear_error - previous_linear_error_) / dt_sec;
-        angular_derivative = (angular_error - previous_angular_error_) / dt_sec;
-      }
-      linear_integral_ += linear_error * dt_sec;
-      angular_integral_ += angular_error * dt_sec;
-      if (config_.linear_ki > 0.0)
-      {
-        linear_integral_ =
-            clampNorm(linear_integral_, config_.max_linear_velocity / config_.linear_ki);
-      }
-      if (config_.angular_ki > 0.0)
-      {
-        angular_integral_ =
-            clampNorm(angular_integral_, config_.max_angular_velocity / config_.angular_ki);
-      }
-    }
-    previous_linear_error_ = linear_error;
-    previous_angular_error_ = angular_error;
-    has_previous_error_ = true;
-
-    command.linear = clampNorm(config_.linear_kp * linear_error +
-                                   config_.linear_ki * linear_integral_ +
-                                   config_.linear_kd * linear_derivative,
-                               config_.max_linear_velocity);
-    command.angular = clampNorm(config_.angular_kp * angular_error +
-                                    config_.angular_ki * angular_integral_ +
-                                    config_.angular_kd * angular_derivative,
-                                config_.max_angular_velocity);
+    command.linear = clampNorm(config_.linear_kp * linear_error, config_.max_linear_velocity);
+    command.angular = clampNorm(config_.angular_kp * angular_error, config_.max_angular_velocity);
     return command;
   }
 
@@ -120,11 +85,6 @@ namespace manager_core
   {
     active_ = false;
     active_target_name_.clear();
-    linear_integral_.setZero();
-    angular_integral_.setZero();
-    previous_linear_error_.setZero();
-    previous_angular_error_.setZero();
-    has_previous_error_ = false;
   }
 
   std::string PoseTarget::name() const
