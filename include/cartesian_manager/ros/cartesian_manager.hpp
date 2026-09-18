@@ -42,9 +42,7 @@ namespace ros_cartesian_manager
     void setupSubscribers();
     void setupPublishers();
     void readParameters();
-    void applyConfig(const ManagerConfig &config, bool force_rebuild);
-    void clearRosInterfaces();
-    void recreateTimer();
+    void applyConfig(const ManagerConfig &config, bool initial);
     void refreshParameters();
     void updateVelocity();
 

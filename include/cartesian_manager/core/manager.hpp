@@ -26,6 +26,7 @@ namespace manager_core
     JointTargetBehaviourConfig joint_targets;
     PoseTargetConfig pose_targets;
     RateLimiterConfig rate_limiter;
+    std::vector<InputConfig> inputs;
   };
 
   class Manager
@@ -33,6 +34,7 @@ namespace manager_core
   public:
     void configure(const ManagerConfig &config);
     void addInputChannel(InputSource source, double timeout_sec, bool enabled = true);
+    void configureInputChannels(const std::vector<InputConfig> &channels);
     void clearInputChannels();
 
     void enableInput(InputSource source);
@@ -63,7 +65,6 @@ namespace manager_core
     Geometrics geometric_state_{Geometrics::BOTH};
     Behaviours behaviour_state_{Behaviours::PASSTHROUGH};
     JointTargetBehaviourConfig joint_target_config_;
-    RateLimiterConfig rate_limiter_config_;
     RateLimiter rate_limiter_;
 
     InputManager input_manager_;

@@ -22,6 +22,7 @@ namespace ros_cartesian_manager
     constexpr const char *kJointTargetCommandPublisher = "joint_target_command";
     constexpr const char *kBehaviourPassthroughMode = "behaviour/passthrough";
     constexpr const char *kJointTargetModePrefix = "behaviour/joint_target/";
+    constexpr const char *kPoseTargetModePrefix = "behaviour/pose_target/";
 
     std::chrono::nanoseconds timerPeriod(double update_rate_hz)
     {
@@ -29,40 +30,22 @@ namespace ros_cartesian_manager
           std::chrono::duration<double>(1.0 / update_rate_hz));
     }
 
-    bool inputSourcesEqual(const std::vector<InputConfig> &lhs, const std::vector<InputConfig> &rhs)
+    bool inputConfigsEqual(const std::vector<manager_core::InputConfig> &lhs,
+                           const std::vector<manager_core::InputConfig> &rhs)
     {
       if (lhs.size() != rhs.size())
       {
         return false;
       }
-
       for (std::size_t index = 0; index < lhs.size(); ++index)
       {
-        if (lhs[index].source != rhs[index].source)
-        {
-          return false;
-        }
-      }
-
-      return true;
-    }
-
-    bool inputConfigsEqual(const std::vector<InputConfig> &lhs, const std::vector<InputConfig> &rhs)
-    {
-      if (!inputSourcesEqual(lhs, rhs))
-      {
-        return false;
-      }
-
-      for (std::size_t index = 0; index < lhs.size(); ++index)
-      {
-        if (lhs[index].timeout_sec != rhs[index].timeout_sec ||
+        if (lhs[index].source != rhs[index].source ||
+            lhs[index].timeout_sec != rhs[index].timeout_sec ||
             lhs[index].enabled != rhs[index].enabled)
         {
           return false;
         }
       }
-
       return true;
     }
 
@@ -131,187 +114,22 @@ namespace ros_cartesian_manager
 
     bool managerConfigsEqual(const manager_core::ManagerConfig &lhs,
                              const manager_core::ManagerConfig &rhs)
+    bool tuningConfigsEqual(const manager_core::ManagerConfig &lhs,
+                            const manager_core::ManagerConfig &rhs)
     {
+      const auto &a = lhs.pose_targets;
+      const auto &b = rhs.pose_targets;
       return framesEqual(lhs.frames, rhs.frames) && lhs.jaco.min_radius == rhs.jaco.min_radius &&
              lhs.jaco.max_angular_velocity == rhs.jaco.max_angular_velocity &&
              lhs.snake.gain == rhs.snake.gain &&
-             jointTargetsEqual(lhs.joint_targets, rhs.joint_targets) &&
-             poseTargetsEqual(lhs.pose_targets, rhs.pose_targets) &&
-             lhs.rate_limiter.max_linear_acceleration ==
-                 rhs.rate_limiter.max_linear_acceleration &&
+             lhs.rate_limiter.max_linear_acceleration == rhs.rate_limiter.max_linear_acceleration &&
              lhs.rate_limiter.max_angular_acceleration ==
-                 rhs.rate_limiter.max_angular_acceleration;
-    }
-
-    cartesian_manager::Params updatedParamsForRequest(
-        cartesian_manager::Params params, const std::vector<rclcpp::Parameter> &parameters)
-    {
-      for (const auto &param : parameters)
-      {
-        const auto &name = param.get_name();
-        if (name == "update_rate_hz")
-        {
-          params.update_rate_hz = param.as_double();
-        }
-        else if (name == "frames.output_frame_id")
-        {
-          params.frames.output_frame_id = param.as_string();
-        }
-        else if (name == "frames.default_input_frame_id")
-        {
-          params.frames.default_input_frame_id = param.as_string();
-        }
-        else if (name == "frames.base_frame")
-        {
-          params.frames.base_frame = param.as_string();
-        }
-        else if (name == "frames.ee_frame")
-        {
-          params.frames.ee_frame = param.as_string();
-        }
-        else if (name == "frames.hybrid_frame")
-        {
-          params.frames.hybrid_frame = param.as_string();
-        }
-        else if (name == "topics.joystick_command")
-        {
-          params.topics.joystick_command = param.as_string();
-        }
-        else if (name == "topics.visual_servoing_command")
-        {
-          params.topics.visual_servoing_command = param.as_string();
-        }
-        else if (name == "topics.mode_request")
-        {
-          params.topics.mode_request = param.as_string();
-        }
-        else if (name == "topics.ee_pose")
-        {
-          params.topics.ee_pose = param.as_string();
-        }
-        else if (name == "topics.ee_vel")
-        {
-          params.topics.ee_vel = param.as_string();
-        }
-        else if (name == "topics.ee_jac")
-        {
-          params.topics.ee_jac = param.as_string();
-        }
-        else if (name == "topics.joint_states")
-        {
-          params.topics.joint_states = param.as_string();
-        }
-        else if (name == "topics.joint_target_command")
-        {
-          params.topics.joint_target_command = param.as_string();
-        }
-        else if (name == "topics.output_command")
-        {
-          params.topics.output_command = param.as_string();
-        }
-        else if (name == "inputs.sources")
-        {
-          params.inputs.sources = param.as_string_array();
-        }
-        else if (name == "inputs.joystick.timeout_sec")
-        {
-          params.inputs.joystick.timeout_sec = param.as_double();
-        }
-        else if (name == "inputs.joystick.enabled")
-        {
-          params.inputs.joystick.enabled = param.as_bool();
-        }
-        else if (name == "inputs.visual_servoing.timeout_sec")
-        {
-          params.inputs.visual_servoing.timeout_sec = param.as_double();
-        }
-        else if (name == "inputs.visual_servoing.enabled")
-        {
-          params.inputs.visual_servoing.enabled = param.as_bool();
-        }
-        else if (name == "shapers.jaco.min_radius")
-        {
-          params.shapers.jaco.min_radius = param.as_double();
-        }
-        else if (name == "shapers.jaco.max_angular_velocity")
-        {
-          params.shapers.jaco.max_angular_velocity = param.as_double();
-        }
-        else if (name == "shapers.snake.gain")
-        {
-          params.shapers.snake.gain = param.as_double();
-        }
-        else if (name == "behaviours.pose_targets.target_names")
-        {
-          params.behaviours.pose_targets.target_names = param.as_string_array();
-        }
-        else if (name == "behaviours.pose_targets.frame_ids")
-        {
-          params.behaviours.pose_targets.frame_ids = param.as_string_array();
-        }
-        else if (name == "behaviours.pose_targets.positions")
-        {
-          params.behaviours.pose_targets.positions = param.as_double_array();
-        }
-        else if (name == "behaviours.pose_targets.orientations")
-        {
-          params.behaviours.pose_targets.orientations = param.as_double_array();
-        }
-        else if (name == "behaviours.pose_targets.linear_kp")
-        {
-          params.behaviours.pose_targets.linear_kp = param.as_double();
-        }
-        else if (name == "behaviours.pose_targets.linear_ki")
-        {
-          params.behaviours.pose_targets.linear_ki = param.as_double();
-        }
-        else if (name == "behaviours.pose_targets.linear_kd")
-        {
-          params.behaviours.pose_targets.linear_kd = param.as_double();
-        }
-        else if (name == "behaviours.pose_targets.angular_kp")
-        {
-          params.behaviours.pose_targets.angular_kp = param.as_double();
-        }
-        else if (name == "behaviours.pose_targets.angular_ki")
-        {
-          params.behaviours.pose_targets.angular_ki = param.as_double();
-        }
-        else if (name == "behaviours.pose_targets.angular_kd")
-        {
-          params.behaviours.pose_targets.angular_kd = param.as_double();
-        }
-        else if (name == "behaviours.pose_targets.max_linear_velocity")
-        {
-          params.behaviours.pose_targets.max_linear_velocity = param.as_double();
-        }
-        else if (name == "behaviours.pose_targets.max_angular_velocity")
-        {
-          params.behaviours.pose_targets.max_angular_velocity = param.as_double();
-        }
-        else if (name == "behaviours.pose_targets.position_tolerance")
-        {
-          params.behaviours.pose_targets.position_tolerance = param.as_double();
-        }
-        else if (name == "behaviours.pose_targets.orientation_tolerance")
-        {
-          params.behaviours.pose_targets.orientation_tolerance = param.as_double();
-        }
-        else if (name == "behaviours.joint_targets.joint_names")
-        {
-          params.behaviours.joint_targets.joint_names = param.as_string_array();
-        }
-        else if (name == "behaviours.joint_targets.target_names")
-        {
-          params.behaviours.joint_targets.target_names = param.as_string_array();
-        }
-        else if (name == "behaviours.joint_targets.positions")
-        {
-          params.behaviours.joint_targets.positions = param.as_double_array();
-        }
-      }
-
-      return params;
+                 rhs.rate_limiter.max_angular_acceleration &&
+             a.linear_kp == b.linear_kp && a.angular_kp == b.angular_kp &&
+             a.max_linear_velocity == b.max_linear_velocity &&
+             a.max_angular_velocity == b.max_angular_velocity &&
+             a.position_tolerance == b.position_tolerance &&
+             a.orientation_tolerance == b.orientation_tolerance;
     }
 
     double stampSec(const builtin_interfaces::msg::Time &stamp, const double fallback_sec)
@@ -429,7 +247,7 @@ namespace ros_cartesian_manager
   {
     readParameters();
     applyConfig(config_, true);
-    recreateTimer();
+    timer_ = create_wall_timer(timerPeriod(config_.update_rate_hz), [this]() { updateVelocity(); });
   }
 
   void CartesianManagerROS::readParameters()
@@ -443,7 +261,7 @@ namespace ros_cartesian_manager
         });
   }
 
-  void CartesianManagerROS::applyConfig(const ManagerConfig &config, bool force_rebuild)
+  void CartesianManagerROS::applyConfig(const ManagerConfig &config, bool initial)
   {
     const auto previous_config = config_;
     const bool manager_config_changed =
@@ -457,69 +275,29 @@ namespace ros_cartesian_manager
     const bool timer_rate_changed =
         force_rebuild || previous_config.update_rate_hz != config.update_rate_hz;
 
+    const bool tuning_changed = initial || !tuningConfigsEqual(config_.manager, config.manager);
+    const bool input_changed =
+        initial || !inputConfigsEqual(config_.manager.inputs, config.manager.inputs);
     config_ = config;
 
-    if (manager_config_changed)
-    {
+    if (tuning_changed)
       manager_.configure(config_.manager);
-    }
 
-    if (input_config_changed)
-    {
-      if (input_sources_changed)
-      {
-        manager_.clearInputChannels();
-      }
-      for (const auto &input : config_.inputs)
-      {
-        manager_.addInputChannel(input.source, input.timeout_sec, input.enabled);
-      }
-    }
+    if (input_changed && !tuning_changed)
+      manager_.configureInputChannels(config_.manager.inputs);
 
-    if (ros_interfaces_changed)
+    if (initial)
     {
-      clearRosInterfaces();
       setupPublishers();
       setupSubscribers();
     }
-
-    if (timer_rate_changed && timer_)
-    {
-      recreateTimer();
-    }
-  }
-
-  void CartesianManagerROS::clearRosInterfaces()
-  {
-    topic_manager_.removePublisher(kOutputCommandPublisher);
-    topic_manager_.removePublisher(kJointTargetCommandPublisher);
-
-    topic_manager_.removeSubscriber("mode_request");
-    topic_manager_.removeSubscriber("ee_pose");
-    topic_manager_.removeSubscriber("ee_vel");
-    topic_manager_.removeSubscriber("ee_jac");
-    topic_manager_.removeSubscriber("joint_states");
-    topic_manager_.removeSubscriber("joystick_command");
-    topic_manager_.removeSubscriber("visual_servoing_command");
-  }
-
-  void CartesianManagerROS::recreateTimer()
-  {
-    if (timer_)
-    {
-      timer_->cancel();
-    }
-
-    timer_ = create_wall_timer(timerPeriod(config_.update_rate_hz), [this]() { updateVelocity(); });
   }
 
   void CartesianManagerROS::refreshParameters()
   {
     auto updated_params = params_;
     if (!param_listener_ || !param_listener_->try_update_params(updated_params))
-    {
       return;
-    }
 
     ManagerConfig updated_config;
     try
@@ -589,7 +367,7 @@ namespace ros_cartesian_manager
         std::bind(&CartesianManagerROS::jointStatesSubscriberCallback, this,
                   std::placeholders::_1));
 
-    if (hasInputSource(config_, manager_core::InputSource::JOYSTICK))
+    for (const auto &input : config_.manager.inputs)
     {
       topic_manager_.addSubscriber<geometry_msgs::msg::TwistStamped>(
           "joystick_command", config_.topics.joystick_command,
@@ -684,8 +462,7 @@ namespace ros_cartesian_manager
     const auto normalized_mode_request = normalizeParameterName(mode_request.data);
     const bool joint_target_request = normalized_mode_request.rfind(kJointTargetModePrefix, 0) == 0;
     const bool passthrough_request = normalized_mode_request == kBehaviourPassthroughMode;
-    const bool pose_target_request =
-        normalized_mode_request.rfind("behaviour/pose_target/", 0) == 0;
+    const bool pose_target_request = normalized_mode_request.rfind(kPoseTargetModePrefix, 0) == 0;
 
     if (!manager_.setMode(normalized_mode_request))
     {
@@ -701,9 +478,7 @@ namespace ros_cartesian_manager
     }
 
     if (passthrough_request || pose_target_request)
-    {
       publishJointTargetCommand(std::nullopt);
-    }
   }
 
   void CartesianManagerROS::publishJointTargetCommand(
@@ -729,6 +504,6 @@ namespace ros_cartesian_manager
         manager_.update(now.seconds(), 1.0 / config_.update_rate_hz, robot_context_)
             .value_or(manager_core::CartesianVelocity{});
     topic_manager_.publish(kOutputCommandPublisher,
-                           commandToMsg(command, now, config_.frames.output_frame_id));
+                           commandToMsg(command, now, config_.output_frame_id));
   }
 } // namespace ros_cartesian_manager
