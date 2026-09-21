@@ -4,7 +4,7 @@
 
 It has two jobs:
 
-1. Collect Cartesian velocity inputs, such as joystick and visual-servoing commands.
+1. Collect Cartesian velocity inputs, such as joystick, tablet, and visual-servoing commands.
 2. Apply the selected command mode, then publish either:
    - a shaped Cartesian velocity command for QP Cartesian control, or
    - a named joint-position target command for QP joint-target control.
@@ -61,7 +61,7 @@ cartesian_manager/
 Normal Cartesian command flow:
 
 ```text
-joystick / visual-servoing TwistStamped
+joystick / tablet / visual-servoing TwistStamped
         |
         v
 CartesianManagerROS subscribers
@@ -193,6 +193,7 @@ Default topics from `bringup/config/explorer_params.yaml`:
 | Topic | Type | Direction | Meaning |
 | --- | --- | --- | --- |
 | `/joystick_cartesian_command` | `geometry_msgs/msg/TwistStamped` | input | Joystick Cartesian velocity command. |
+| `/tablet_cartesian_command` | `geometry_msgs/msg/TwistStamped` | input | Tablet Cartesian velocity command. |
 | `/visual_servoing_cartesian_command` | `geometry_msgs/msg/TwistStamped` | input | Visual-servoing Cartesian velocity command. |
 | `/mode_request` | `std_msgs/msg/String` | input | Mode selection request. |
 | `/ee_pose` | `geometry_msgs/msg/PoseStamped` | input | Current end-effector pose from `qontrol_controller`. |
@@ -214,6 +215,7 @@ ros2 topic pub --once /mode_request std_msgs/msg/String "{data: 'geometric/jaco'
 ros2 topic pub --once /mode_request std_msgs/msg/String "{data: 'geometric/snake'}"
 ros2 topic pub --once /mode_request std_msgs/msg/String "{data: 'behaviour/passthrough'}"
 ros2 topic pub --once /mode_request std_msgs/msg/String "{data: 'behaviour/joint_target/home'}"
+ros2 topic pub --once /mode_request std_msgs/msg/String "{data: 'behaviour/pose_target/ready'}"
 ```
 
 Mode strings are normalized before parsing:
