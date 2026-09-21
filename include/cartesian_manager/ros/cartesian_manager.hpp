@@ -35,7 +35,8 @@ namespace ros_cartesian_manager
     void eePoseSubscriberCallback(const geometry_msgs::msg::PoseStamped &msg);
     void eeVelSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg);
     void eeJacobianSubscriberCallback(const std_msgs::msg::Float64MultiArray &msg);
-    void joystickcommandCallback(const geometry_msgs::msg::TwistStamped &msg);
+    void joystickSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg);
+    void tabletSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg);
     void visualServoingSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg);
 
   private:

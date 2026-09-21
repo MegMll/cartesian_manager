@@ -95,6 +95,9 @@ namespace ros_cartesian_manager
       if (name == "joystick")
         return manager_core::InputSource::JOYSTICK;
 
+      if (name == "tablet")
+        return manager_core::InputSource::TABLET;
+
       if (name == "visual_servoing")
         return manager_core::InputSource::VISUAL_SERVOING;
 
@@ -110,6 +113,11 @@ namespace ros_cartesian_manager
         requirePositive(params.inputs.joystick.timeout_sec, "inputs.joystick.timeout_sec");
         return manager_core::InputConfig{source, params.inputs.joystick.timeout_sec,
                                          params.inputs.joystick.enabled};
+
+      case manager_core::InputSource::TABLET:
+        requirePositive(params.inputs.tablet.timeout_sec, "inputs.tablet.timeout_sec");
+        return manager_core::InputConfig{source, params.inputs.tablet.timeout_sec,
+                                         params.inputs.tablet.enabled};
 
       case manager_core::InputSource::VISUAL_SERVOING:
         requirePositive(params.inputs.visual_servoing.timeout_sec,
@@ -258,6 +266,10 @@ namespace ros_cartesian_manager
         params.inputs.joystick.timeout_sec = param.as_double();
       else if (name == "inputs.joystick.enabled")
         params.inputs.joystick.enabled = param.as_bool();
+      else if (name == "inputs.tablet.timeout_sec")
+        params.inputs.tablet.timeout_sec = param.as_double();
+      else if (name == "inputs.tablet.enabled")
+        params.inputs.tablet.enabled = param.as_bool();
       else if (name == "inputs.visual_servoing.timeout_sec")
         params.inputs.visual_servoing.timeout_sec = param.as_double();
       else if (name == "inputs.visual_servoing.enabled")
@@ -297,6 +309,7 @@ namespace ros_cartesian_manager
     requireAtMost(config.update_rate_hz, kMaxUpdateRateHz, "update_rate_hz");
 
     config.topics.joystick_command = params.topics.joystick_command;
+    config.topics.tablet_command = params.topics.tablet_command;
     config.topics.visual_servoing_command = params.topics.visual_servoing_command;
     config.topics.mode_request = params.topics.mode_request;
     config.topics.ee_pose = params.topics.ee_pose;
@@ -342,6 +355,9 @@ namespace ros_cartesian_manager
       {
       case manager_core::InputSource::JOYSTICK:
         requireNonEmpty(config.topics.joystick_command, "topics.joystick_command");
+        break;
+      case manager_core::InputSource::TABLET:
+        requireNonEmpty(config.topics.tablet_command, "topics.tablet_command");
         break;
       case manager_core::InputSource::VISUAL_SERVOING:
         requireNonEmpty(config.topics.visual_servoing_command, "topics.visual_servoing_command");

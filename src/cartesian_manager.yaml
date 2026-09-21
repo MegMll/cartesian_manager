@@ -38,6 +38,11 @@ cartesian_manager:
       default_value: "/joystick_cartesian_command"
       read_only: true
       description: "Topic carrying joystick Cartesian commands."
+    tablet_command:
+      type: string
+      default_value: "/tablet_cartesian_command"
+      read_only: true
+      description: "Topic carrying tablet Cartesian commands."
     visual_servoing_command:
       type: string
       default_value: "/visual_servoing_cartesian_command"
@@ -82,9 +87,9 @@ cartesian_manager:
   inputs:
     sources:
       type: string_array
-      default_value: ["joystick", "visual_servoing"]
+      default_value: ["joystick", "tablet", "visual_servoing"]
       read_only: true
-      description: "Declared input sources. Supported values: joystick, visual_servoing."
+      description: "Declared input sources. Supported values: joystick, tablet, visual_servoing."
     joystick:
       timeout_sec:
         type: double
@@ -94,6 +99,15 @@ cartesian_manager:
         type: bool
         default_value: true
         description: "Whether joystick input is enabled at startup."
+    tablet:
+      timeout_sec:
+        type: double
+        default_value: 0.2
+        description: "Maximum tablet command age before it is ignored."
+      enabled:
+        type: bool
+        default_value: true
+        description: "Whether tablet input is enabled at startup."
     visual_servoing:
       timeout_sec:
         type: double

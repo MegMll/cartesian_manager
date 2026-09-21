@@ -12,6 +12,7 @@ namespace manager_core
   enum class InputSource
   {
     JOYSTICK,
+    TABLET,
     VISUAL_SERVOING
   };
 

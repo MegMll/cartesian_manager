@@ -93,8 +93,7 @@ namespace manager_core
     const auto &channel = input->second;
     if (!channel.enabled || !channel.latest.received)
       return false;
-
-    return now_sec - channel.latest.stamp_sec <= channel.timeout;
+    return (now_sec - channel.latest.stamp_sec) <= channel.timeout;
   }
 
   std::optional<CartesianVelocity> InputManager::getCommand(InputSource source,

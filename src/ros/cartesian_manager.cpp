@@ -299,7 +299,12 @@ namespace ros_cartesian_manager
       case manager_core::InputSource::JOYSTICK:
         topic_manager_.addSubscriber<geometry_msgs::msg::TwistStamped>(
             "joystick_command", config_.topics.joystick_command,
-            std::bind(&CartesianManagerROS::joystickcommandCallback, this, std::placeholders::_1));
+            std::bind(&CartesianManagerROS::joystickSubscriberCallback, this, std::placeholders::_1));
+        break;
+      case manager_core::InputSource::TABLET:
+        topic_manager_.addSubscriber<geometry_msgs::msg::TwistStamped>(
+            "tablet_command", config_.topics.tablet_command,
+            std::bind(&CartesianManagerROS::tabletSubscriberCallback, this, std::placeholders::_1));
         break;
       case manager_core::InputSource::VISUAL_SERVOING:
         topic_manager_.addSubscriber<geometry_msgs::msg::TwistStamped>(
@@ -311,11 +316,10 @@ namespace ros_cartesian_manager
     }
   }
 
-  void CartesianManagerROS::joystickcommandCallback(const geometry_msgs::msg::TwistStamped &msg)
+  void CartesianManagerROS::joystickSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg)
   {
     const auto now_sec = topic_manager_.nowSec();
-    const auto input_frame_id =
-        frameOrDefault(msg.header.frame_id, config_.default_input_frame_id);
+    const auto input_frame_id = frameOrDefault(msg.header.frame_id, config_.default_input_frame_id);
     const manager_core::FramesConfig temp_frames = config_.manager.frames;
     const auto command = twistToCommand(msg, config_.default_input_frame_id);
     if (input_frame_id == temp_frames.hybrid_frame)
@@ -328,6 +332,25 @@ namespace ros_cartesian_manager
     {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
                            "Ignoring joystick command because the source is not configured");
+    }
+  }
+
+  void CartesianManagerROS::tabletSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg)
+  {
+    const auto now_sec = topic_manager_.nowSec();
+    const auto input_frame_id = frameOrDefault(msg.header.frame_id, config_.default_input_frame_id);
+    const manager_core::FramesConfig temp_frames = config_.manager.frames;
+    const auto command = twistToCommand(msg, config_.default_input_frame_id);
+    if (input_frame_id == temp_frames.hybrid_frame)
+    {
+      robot_context_.updateHybridPose(command.angular);
+    }
+
+    if (!manager_.setInputCommand(manager_core::InputSource::TABLET, command,
+                                  stampSec(msg.header.stamp, now_sec)))
+    {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                           "Ignoring tablet command because the source is not configured");
     }
   }
 
