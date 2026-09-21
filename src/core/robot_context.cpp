@@ -39,7 +39,8 @@ namespace manager_core
     hybrid_state.inside_cone = std::abs(vertical_alignment) > std::cos(hybrid_state.min_cone_ang);
 
     const bool active = angular_input.norm() > hybrid_state.released_input;
-    const bool reversed = active && angular_input.dot(hybrid_state.previous_angular_input_) < 0.0;
+    const bool reversed = active && hybrid_state.has_previous_active_input &&
+                          angular_input.dot(hybrid_state.previous_angular_input_) < 0.0;
     const bool reanchor = !active || reversed;
     Eigen::Vector3d x;
     Eigen::Vector3d reference_x = normalizedProjection(x_0, z_ee);
