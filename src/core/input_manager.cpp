@@ -153,13 +153,7 @@ namespace manager_core
     if (command.frame_id == frames_names.ee_frame)
       pose = &context.ee_pose;
     else if (command.frame_id == frames_names.hybrid_frame)
-<<<<<<< HEAD
-    {
       pose = &context.hybrid_frame_pose;
-    }
-=======
-      pose = &context.hybrid_pose;
->>>>>>> 34f52ca ((ros/parameters_parsing) - clean parameter parsing and use only one type of config, no duplicates)
     else
       return std::nullopt;
 

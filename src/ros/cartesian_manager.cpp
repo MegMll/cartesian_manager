@@ -49,77 +49,12 @@ namespace ros_cartesian_manager
       return true;
     }
 
-    bool usedTopicsEqual(const TopicConfig &lhs, const TopicConfig &rhs)
-    {
-      return lhs.joystick_command == rhs.joystick_command &&
-             lhs.visual_servoing_command == rhs.visual_servoing_command &&
-             lhs.mode_request == rhs.mode_request && lhs.output_command == rhs.output_command &&
-             lhs.joint_target_command == rhs.joint_target_command && lhs.ee_pose == rhs.ee_pose &&
-             lhs.ee_vel == rhs.ee_vel && lhs.ee_jac == rhs.ee_jac &&
-             lhs.joint_states == rhs.joint_states;
-    }
-
-    bool jointTargetsEqual(const manager_core::JointTargetBehaviourConfig &lhs,
-                           const manager_core::JointTargetBehaviourConfig &rhs)
-    {
-      if (lhs.joint_names != rhs.joint_names || lhs.targets.size() != rhs.targets.size())
-      {
-        return false;
-      }
-
-      for (std::size_t index = 0; index < lhs.targets.size(); ++index)
-      {
-        if (lhs.targets[index].name != rhs.targets[index].name ||
-            lhs.targets[index].positions != rhs.targets[index].positions)
-        {
-          return false;
-        }
-      }
-
-      return true;
-    }
-
-    bool poseTargetsEqual(const manager_core::PoseTargetConfig &lhs,
-                          const manager_core::PoseTargetConfig &rhs)
-    {
-      if (lhs.target_names != rhs.target_names || lhs.targets.size() != rhs.targets.size() ||
-          lhs.linear_kp != rhs.linear_kp || lhs.linear_ki != rhs.linear_ki ||
-          lhs.linear_kd != rhs.linear_kd || lhs.angular_kp != rhs.angular_kp ||
-          lhs.angular_ki != rhs.angular_ki || lhs.angular_kd != rhs.angular_kd ||
-          lhs.max_linear_velocity != rhs.max_linear_velocity ||
-          lhs.max_angular_velocity != rhs.max_angular_velocity ||
-          lhs.position_tolerance != rhs.position_tolerance ||
-          lhs.orientation_tolerance != rhs.orientation_tolerance)
-      {
-        return false;
-      }
-      for (std::size_t index = 0; index < lhs.targets.size(); ++index)
-      {
-        const auto &a = lhs.targets[index];
-        const auto &b = rhs.targets[index];
-        if (a.frame_id != b.frame_id || a.position != b.position ||
-            a.orientation.coeffs() != b.orientation.coeffs())
-        {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    bool framesEqual(const manager_core::FramesConfig &lhs, const manager_core::FramesConfig &rhs)
-    {
-      return lhs.base_frame == rhs.base_frame && lhs.ee_frame == rhs.ee_frame &&
-             lhs.hybrid_frame == rhs.hybrid_frame;
-    }
-
-    bool managerConfigsEqual(const manager_core::ManagerConfig &lhs,
-                             const manager_core::ManagerConfig &rhs)
     bool tuningConfigsEqual(const manager_core::ManagerConfig &lhs,
                             const manager_core::ManagerConfig &rhs)
     {
       const auto &a = lhs.pose_targets;
       const auto &b = rhs.pose_targets;
-      return framesEqual(lhs.frames, rhs.frames) && lhs.jaco.min_radius == rhs.jaco.min_radius &&
+      return lhs.jaco.min_radius == rhs.jaco.min_radius &&
              lhs.jaco.max_angular_velocity == rhs.jaco.max_angular_velocity &&
              lhs.snake.gain == rhs.snake.gain &&
              lhs.rate_limiter.max_linear_acceleration == rhs.rate_limiter.max_linear_acceleration &&
@@ -263,18 +198,6 @@ namespace ros_cartesian_manager
 
   void CartesianManagerROS::applyConfig(const ManagerConfig &config, bool initial)
   {
-    const auto previous_config = config_;
-    const bool manager_config_changed =
-        force_rebuild || !managerConfigsEqual(previous_config.manager, config.manager);
-    const bool input_sources_changed =
-        force_rebuild || !inputSourcesEqual(previous_config.inputs, config.inputs);
-    const bool input_config_changed = force_rebuild || input_sources_changed ||
-                                      !inputConfigsEqual(previous_config.inputs, config.inputs);
-    const bool ros_interfaces_changed = force_rebuild || input_sources_changed ||
-                                        !usedTopicsEqual(previous_config.topics, config.topics);
-    const bool timer_rate_changed =
-        force_rebuild || previous_config.update_rate_hz != config.update_rate_hz;
-
     const bool tuning_changed = initial || !tuningConfigsEqual(config_.manager, config.manager);
     const bool input_changed =
         initial || !inputConfigsEqual(config_.manager.inputs, config.manager.inputs);
@@ -371,17 +294,20 @@ namespace ros_cartesian_manager
 
     for (const auto &input : config_.manager.inputs)
     {
-      topic_manager_.addSubscriber<geometry_msgs::msg::TwistStamped>(
-          "joystick_command", config_.topics.joystick_command,
-          std::bind(&CartesianManagerROS::joystickcommandCallback, this, std::placeholders::_1));
-    }
-
-    if (hasInputSource(config_, manager_core::InputSource::VISUAL_SERVOING))
-    {
-      topic_manager_.addSubscriber<geometry_msgs::msg::TwistStamped>(
-          "visual_servoing_command", config_.topics.visual_servoing_command,
-          std::bind(&CartesianManagerROS::visualServoingSubscriberCallback, this,
-                    std::placeholders::_1));
+      switch (input.source)
+      {
+      case manager_core::InputSource::JOYSTICK:
+        topic_manager_.addSubscriber<geometry_msgs::msg::TwistStamped>(
+            "joystick_command", config_.topics.joystick_command,
+            std::bind(&CartesianManagerROS::joystickcommandCallback, this, std::placeholders::_1));
+        break;
+      case manager_core::InputSource::VISUAL_SERVOING:
+        topic_manager_.addSubscriber<geometry_msgs::msg::TwistStamped>(
+            "visual_servoing_command", config_.topics.visual_servoing_command,
+            std::bind(&CartesianManagerROS::visualServoingSubscriberCallback, this,
+                      std::placeholders::_1));
+        break;
+      }
     }
   }
 
@@ -389,9 +315,9 @@ namespace ros_cartesian_manager
   {
     const auto now_sec = topic_manager_.nowSec();
     const auto input_frame_id =
-        frameOrDefault(msg.header.frame_id, config_.frames.default_input_frame_id);
-    const manager_core::FramesConfig temp_frames = manager_.getInputManager().getFramesNames();
-    const auto command = twistToCommand(msg, config_.frames.default_input_frame_id);
+        frameOrDefault(msg.header.frame_id, config_.default_input_frame_id);
+    const manager_core::FramesConfig temp_frames = config_.manager.frames;
+    const auto command = twistToCommand(msg, config_.default_input_frame_id);
     if (input_frame_id == temp_frames.hybrid_frame)
     {
       robot_context_.updateHybridPose(command.angular);
@@ -409,14 +335,14 @@ namespace ros_cartesian_manager
       const geometry_msgs::msg::TwistStamped &msg)
   {
     const auto now_sec = topic_manager_.nowSec();
-    const auto command = twistToCommand(msg, config_.frames.default_input_frame_id);
+    const auto command = twistToCommand(msg, config_.default_input_frame_id);
     if (!manager_.setInputCommand(manager_core::InputSource::VISUAL_SERVOING, command,
                                   stampSec(msg.header.stamp, now_sec)))
     {
       RCLCPP_WARN_THROTTLE(
           get_logger(), *get_clock(), 5000,
           "Ignoring visual-servoing command in frame '%s'; expected input frame '%s'",
-          command.frame_id.c_str(), config_.frames.default_input_frame_id.c_str());
+          command.frame_id.c_str(), config_.default_input_frame_id.c_str());
     }
   }
 
@@ -441,12 +367,12 @@ namespace ros_cartesian_manager
         Eigen::Quaterniond(msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y,
                            msg.pose.orientation.z);
     robot_context_.ee_pose.frame_id =
-        frameOrDefault(msg.header.frame_id, config_.frames.default_input_frame_id);
+        frameOrDefault(msg.header.frame_id, config_.manager.frames.base_frame);
   }
 
   void CartesianManagerROS::eeVelSubscriberCallback(const geometry_msgs::msg::TwistStamped &msg)
   {
-    robot_context_.ee_vel = twistToCommand(msg, config_.frames.default_input_frame_id);
+    robot_context_.ee_vel = twistToCommand(msg, config_.default_input_frame_id);
   }
 
   void CartesianManagerROS::eeJacobianSubscriberCallback(
