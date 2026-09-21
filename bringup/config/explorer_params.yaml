@@ -21,9 +21,9 @@ qontrol_explorer:
       - effort
     robot_command: position
 
-    command_max_linear_velocity: 0.15
+    command_max_linear_velocity: 0.1
     topic_max_linear_velocity: /explorer_user_interfaces/rqt_armcontrol/max_linear_speed
-    command_max_angular_velocity: 0.4
+    command_max_angular_velocity: 0.2
     topic_max_angular_velocity: /explorer_user_interfaces/rqt_armcontrol/max_angular_speed
     input_topic_name: /cartesian_command
     regularisation_weight: 1e-4
@@ -42,7 +42,7 @@ cartesian_manager:
       output_frame_id: base_link
       default_input_frame_id: base_link
       base_frame: base_link
-      ee_frame: ft_frame
+      ee_frame: effector_frame
       hybrid_frame: hybrid_frame
 
     topics:

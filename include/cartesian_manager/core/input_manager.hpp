@@ -12,9 +12,11 @@ namespace manager_core
   {
 
   public:
+    FramesConfig getFramesNames(){return frames_names;};
     void setFramesConfig(const std::string &ee_frame, const std::string &base_frame,
                          const std::string &hybrid_frame);
     void setFramesConfig(const FramesConfig &frame_names);
+
     void addInputChannel(InputSource source, double timeout_sec, bool enabled = true);
 
     void enableInputChannel(InputSource source);
@@ -35,12 +37,13 @@ namespace manager_core
 
     std::optional<CartesianVelocity> getFullCommand(double now_sec,
                                                     const RobotContext &context) const;
-
+    
   private:
     std::optional<CartesianVelocity> commandInBaseFrame(const CartesianVelocity &command,
                                                         const RobotContext &context) const;
 
     std::unordered_map<InputSource, InputChannel> inputs_;
     FramesConfig frames_names;
+
   };
 } // namespace manager_core
