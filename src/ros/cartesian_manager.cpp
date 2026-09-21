@@ -280,10 +280,12 @@ namespace ros_cartesian_manager
         initial || !inputConfigsEqual(config_.manager.inputs, config.manager.inputs);
     config_ = config;
 
-    if (tuning_changed)
+    if (initial)
       manager_.configure(config_.manager);
+    else if (tuning_changed)
+      manager_.updateTuning(config_.manager);
 
-    if (input_changed && !tuning_changed)
+    if (input_changed && !initial)
       manager_.configureInputChannels(config_.manager.inputs);
 
     if (initial)

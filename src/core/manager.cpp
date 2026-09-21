@@ -50,6 +50,15 @@ namespace manager_core
     configureInputChannels(config.inputs);
   }
 
+  void Manager::updateTuning(const ManagerConfig &config)
+  {
+    registerGeometricShaper(Geometrics::JACO, std::make_unique<JacoShaper>(config.jaco));
+    registerGeometricShaper(Geometrics::SNAKE, std::make_unique<SnakeShaper>(config.snake));
+    static_cast<PoseTarget &>(*behaviours_.at(Behaviours::POSE_TARGET))
+        .configure(config.pose_targets);
+    rate_limiter_.setConfig(config.rate_limiter);
+  }
+
   void Manager::addInputChannel(InputSource source, double timeout_sec, bool enabled)
   {
     input_manager_.addInputChannel(source, timeout_sec, enabled);

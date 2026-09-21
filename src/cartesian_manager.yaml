@@ -183,7 +183,7 @@ cartesian_manager:
         default_value: 0.2
       position_tolerance:
         type: double
-        default_value: 0.01
+        default_value: 0.05
       orientation_tolerance:
         type: double
         default_value: 0.05

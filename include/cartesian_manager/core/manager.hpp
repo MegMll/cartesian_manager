@@ -33,6 +33,7 @@ namespace manager_core
   {
   public:
     void configure(const ManagerConfig &config);
+    void updateTuning(const ManagerConfig &config);
     void addInputChannel(InputSource source, double timeout_sec, bool enabled = true);
     void configureInputChannels(const std::vector<InputConfig> &channels);
     void clearInputChannels();
