@@ -75,6 +75,7 @@ cartesian_manager:
 
     topics:
       joystick_command: /joystick_cartesian_command
+      tablet_command: /tablet_cartesian_command
       visual_servoing_command: /visual_servoing_cartesian_command
       mode_request: /mode_request
       ee_pose: /ee_pose
@@ -87,7 +88,11 @@ cartesian_manager:
     inputs:
       sources:
         - joystick
+        - tablet
       joystick:
+        timeout_sec: 0.2
+        enabled: true
+      tablet:
         timeout_sec: 0.2
         enabled: true
       visual_servoing:
