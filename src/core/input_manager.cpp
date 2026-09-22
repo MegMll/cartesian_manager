@@ -173,6 +173,7 @@ namespace manager_core
     CartesianVelocity command;
     command.frame_id = frames_names.base_frame;
 
+    bool has_valid_input = false;
     for (const auto &[source, channel] : inputs_)
     {
       if (!hasValidCommand(source, now_sec))
@@ -180,11 +181,16 @@ namespace manager_core
 
       const auto transformed_command = commandInBaseFrame(channel.latest.command, context);
       if (!transformed_command)
-        continue;
+        continue; 
 
+      has_valid_input = true;
       command.linear += transformed_command->linear;
       command.angular += transformed_command->angular;
     }
+
+    if (!has_valid_input)
+      return std::nullopt;
+    
     return command;
   }
 } // namespace manager_core
