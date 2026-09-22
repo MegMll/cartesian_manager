@@ -50,7 +50,7 @@ namespace manager_core
       pose_targets_[config_.target_names[index]] = config_.targets[index];
     }
 
-    if (active_ && !hasTarget(active_target_name_))
+    if (active_ && !dynamic_target_active_ && !hasTarget(active_target_name_))
     {
       reset();
     }
@@ -84,6 +84,8 @@ namespace manager_core
   void PoseTarget::reset()
   {
     active_ = false;
+    dynamic_target_active_ = false;
+    dynamic_target_.reset();
     active_target_name_.clear();
   }
 
@@ -105,6 +107,38 @@ namespace manager_core
 
     reset();
     active_target_name_ = target_name;
+    active_ = true;
+    return true;
+  }
+
+  bool PoseTarget::start(const CartesianPose &target, std::string *error)
+  {
+    if (target.frame_id.empty())
+    {
+      if (error)
+      {
+        *error = "pose target frame is empty";
+      }
+      return false;
+    }
+
+    if (!target.position.allFinite() || !target.orientation.coeffs().allFinite() ||
+        !std::isfinite(target.orientation.norm()) ||
+        target.orientation.norm() <= kMinQuaternionNorm)
+    {
+      if (error)
+      {
+        *error = "pose target contains a non-finite value or zero quaternion";
+      }
+      return false;
+    }
+
+    auto normalized_target = target;
+    normalized_target.orientation.normalize();
+
+    reset();
+    dynamic_target_ = std::move(normalized_target);
+    dynamic_target_active_ = true;
     active_ = true;
     return true;
   }
@@ -186,6 +220,11 @@ namespace manager_core
 
   const CartesianPose *PoseTarget::activeTarget() const
   {
+    if (dynamic_target_active_)
+    {
+      return dynamic_target_ ? &*dynamic_target_ : nullptr;
+    }
+
     const auto target = pose_targets_.find(active_target_name_);
     if (target == pose_targets_.end())
     {

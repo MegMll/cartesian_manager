@@ -22,6 +22,7 @@ namespace ros_cartesian_manager
     std::string tablet_command;
     std::string visual_servoing_command;
     std::string mode_request;
+    std::string pose_target;
     std::string output_command;
     std::string ee_pose;
     std::string ee_vel;

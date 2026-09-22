@@ -45,6 +45,7 @@ namespace manager_core
     std::vector<InputSource> getValidInputSources(double now_sec) const;
 
     bool setMode(const std::string &mode_request);
+    bool setPoseTarget(const CartesianPose &target, std::string *error = nullptr);
     std::optional<JointTargetCommand> activeJointTargetCommand() const;
 
     std::optional<CartesianVelocity> update(double now_sec, double dt_sec,

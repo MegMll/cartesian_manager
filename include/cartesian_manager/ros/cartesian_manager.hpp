@@ -30,6 +30,7 @@ namespace ros_cartesian_manager
     explicit CartesianManagerROS(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
 
     void modeRequestCallback(const std_msgs::msg::String &mode_request);
+    void poseTargetCallback(const geometry_msgs::msg::PoseStamped &pose_target);
 
     void jointStatesSubscriberCallback(const sensor_msgs::msg::JointState &msg);
     void eePoseSubscriberCallback(const geometry_msgs::msg::PoseStamped &msg);

@@ -276,6 +276,10 @@ namespace ros_cartesian_manager
         std::bind(&CartesianManagerROS::modeRequestCallback, this, std::placeholders::_1));
 
     topic_manager_.addSubscriber<geometry_msgs::msg::PoseStamped>(
+        "pose_target", config_.topics.pose_target,
+        std::bind(&CartesianManagerROS::poseTargetCallback, this, std::placeholders::_1));
+
+    topic_manager_.addSubscriber<geometry_msgs::msg::PoseStamped>(
         "ee_pose", config_.topics.ee_pose,
         std::bind(&CartesianManagerROS::eePoseSubscriberCallback, this, std::placeholders::_1));
 
@@ -430,6 +434,34 @@ namespace ros_cartesian_manager
 
     if (passthrough_request || pose_target_request)
       publishJointTargetCommand(std::nullopt);
+  }
+
+  void CartesianManagerROS::poseTargetCallback(const geometry_msgs::msg::PoseStamped &pose_target)
+  {
+    if (pose_target.header.frame_id != config_.manager.frames.base_frame)
+    {
+      RCLCPP_WARN(get_logger(),
+                  "Ignoring pose target in frame '%s'; expected configured base frame '%s'",
+                  pose_target.header.frame_id.c_str(), config_.manager.frames.base_frame.c_str());
+      return;
+    }
+
+    manager_core::CartesianPose target;
+    target.frame_id = pose_target.header.frame_id;
+    target.position = Eigen::Vector3d(pose_target.pose.position.x, pose_target.pose.position.y,
+                                      pose_target.pose.position.z);
+    target.orientation = Eigen::Quaterniond(
+        pose_target.pose.orientation.w, pose_target.pose.orientation.x,
+        pose_target.pose.orientation.y, pose_target.pose.orientation.z);
+
+    std::string error;
+    if (!manager_.setPoseTarget(target, &error))
+    {
+      RCLCPP_WARN(get_logger(), "Ignoring invalid pose target: %s", error.c_str());
+      return;
+    }
+
+    publishJointTargetCommand(std::nullopt);
   }
 
   void CartesianManagerROS::publishJointTargetCommand(

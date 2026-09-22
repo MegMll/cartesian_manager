@@ -196,6 +196,7 @@ Default topics from `bringup/config/explorer_params.yaml`:
 | `/tablet_cartesian_command` | `geometry_msgs/msg/TwistStamped` | input | Tablet Cartesian velocity command. |
 | `/visual_servoing_cartesian_command` | `geometry_msgs/msg/TwistStamped` | input | Visual-servoing Cartesian velocity command. |
 | `/mode_request` | `std_msgs/msg/String` | input | Mode selection request. |
+| `/pose_target` | `geometry_msgs/msg/PoseStamped` | input | Dynamic Cartesian pose target executed immediately. |
 | `/ee_pose` | `geometry_msgs/msg/PoseStamped` | input | Current end-effector pose from `qontrol_controller`. |
 | `/ee_velocity` | `geometry_msgs/msg/TwistStamped` | input | Current end-effector velocity from `qontrol_controller`. |
 | `/ee_jac` | `std_msgs/msg/Float64MultiArray` | input | Current end-effector Jacobian. |
@@ -342,6 +343,19 @@ the manager returns to input control on the next update. Send
 proportional gains only: `linear_kp` for position error and `angular_kp` for
 orientation error. Each command is capped by its configured maximum velocity.
 
+To execute a pose that was not configured at startup, publish it directly on
+`/pose_target`:
+
+```bash
+ros2 topic pub --once /pose_target geometry_msgs/msg/PoseStamped   "{header: {frame_id: 'base_link'}, pose: {position: {x: 0.6, y: 0.270, z: 0.32}, orientation: {x: -0.22, y: 0.85, z: 0.41, w: 0.45}}}"
+```
+
+The pose is executed immediately and replaces any pose target already in progress. Its
+`header.frame_id` must be the configured `frames.base_frame`; empty or different frames are
+rejected because the manager does not perform TF lookups. Non-finite poses and zero quaternions
+are also rejected, while valid quaternions are normalized. Named YAML targets and
+`behaviour/pose_target/<name>` remain available.
+
 ## Joint Targets
 
 Named joint targets are configured under:
@@ -385,4 +399,3 @@ This keeps joint limits and QP constraints active while moving to a target.
 For extension details, see:
 
 - `docs/technical_guide.md`
-

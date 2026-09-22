@@ -53,6 +53,11 @@ cartesian_manager:
       default_value: "/mode_request"
       read_only: true
       description: "Topic carrying structured mode requests, such as geometric/snake or behaviour/joint_target/home."
+    pose_target:
+      type: string
+      default_value: "/pose_target"
+      read_only: true
+      description: "Topic carrying a dynamic Cartesian pose target to execute immediately."
     ee_pose:
       type: string
       default_value: "/ee_pose"

@@ -37,6 +37,7 @@ namespace manager_core
     std::string name() const override;
     bool start(const std::string &target_name, const RobotContext &context,
                std::string *error = nullptr) override;
+    bool start(const CartesianPose &target, std::string *error = nullptr);
     bool acceptsInputCommand() const override;
     std::optional<std::string> validate(const RobotContext &context) const override;
     bool isComplete(const RobotContext &context) const override;
@@ -53,7 +54,9 @@ namespace manager_core
 
     PoseTargetConfig config_;
     std::unordered_map<std::string, CartesianPose> pose_targets_;
+    std::optional<CartesianPose> dynamic_target_;
     std::string active_target_name_;
+    bool dynamic_target_active_{false};
     bool active_{false};
   };
 

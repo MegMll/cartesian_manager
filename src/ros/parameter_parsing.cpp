@@ -312,6 +312,7 @@ namespace ros_cartesian_manager
     config.topics.tablet_command = params.topics.tablet_command;
     config.topics.visual_servoing_command = params.topics.visual_servoing_command;
     config.topics.mode_request = params.topics.mode_request;
+    config.topics.pose_target = params.topics.pose_target;
     config.topics.ee_pose = params.topics.ee_pose;
     config.topics.ee_vel = params.topics.ee_vel;
     config.topics.ee_jac = params.topics.ee_jac;
@@ -320,6 +321,7 @@ namespace ros_cartesian_manager
     config.topics.output_command = params.topics.output_command;
 
     requireNonEmpty(config.topics.mode_request, "topics.mode_request");
+    requireNonEmpty(config.topics.pose_target, "topics.pose_target");
     requireNonEmpty(config.topics.ee_pose, "topics.ee_pose");
     requireNonEmpty(config.topics.ee_vel, "topics.ee_vel");
     requireNonEmpty(config.topics.ee_jac, "topics.ee_jac");

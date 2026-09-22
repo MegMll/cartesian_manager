@@ -188,6 +188,29 @@ namespace manager_core
     return false;
   }
 
+  bool Manager::setPoseTarget(const CartesianPose &target, std::string *error)
+  {
+    const auto pose_target = behaviours_.find(Behaviours::POSE_TARGET);
+    if (pose_target == behaviours_.end())
+    {
+      if (error)
+      {
+        *error = "pose target behaviour is not configured";
+      }
+      return false;
+    }
+
+    auto &behaviour = static_cast<PoseTarget &>(*pose_target->second);
+    if (!behaviour.start(target, error))
+    {
+      return false;
+    }
+
+    behaviour_state_ = Behaviours::POSE_TARGET;
+    rate_limiter_.reset();
+    return true;
+  }
+
   std::optional<JointTargetCommand> Manager::activeJointTargetCommand() const
   {
     if (behaviour_state_ != Behaviours::JOINT_TARGET)
